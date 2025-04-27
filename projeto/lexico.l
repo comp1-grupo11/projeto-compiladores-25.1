@@ -1,49 +1,56 @@
 %{
-#include <stdio.h>
+extern void yyerror(const char *s);
+#include "parser.tab.h"
+#include <stdlib.h>
 #include <string.h>
 
 char temp_str[1024];
+int current_line = 1;
+
 %}
 
-/* Estados para lidar com strings, caracteres e comentários */
+%option noyywrap
+%option yylineno
+
 %x STRING CHAR COMMENT COMMENT_MULTI
+
+DIGIT       [0-9]
+LETTER      [a-zA-Z_]
+ID          {LETTER}({LETTER}|{DIGIT})*
+HEX         [0-9a-fA-F]
+OCT         [0-7]
+SPACE       [ \t\r]
 
 %%
 
-    /* Palavras-chave e tipos */
-"auto"         { printf("KW_AUTO\n"); }
-"break"        { printf("KW_BREAK\n"); }
-"case"         { printf("KW_CASE\n"); }
-"const"        { printf("KW_CONST\n"); }
-"continue"     { printf("KW_CONTINUE\n"); }
-"default"      { printf("KW_DEFAULT\n"); }
-"do"           { printf("KW_DO\n"); }
-"double"       { printf("KW_DOUBLE\n"); }
-"else"         { printf("KW_ELSE\n"); }
-"enum"         { printf("KW_ENUM\n"); }
-"extern"       { printf("KW_EXTERN\n"); }
-"float"        { printf("KW_FLOAT\n"); }
-"goto"         { printf("KW_GOTO\n"); }
-"if"           { printf("KW_IF\n"); }
-"long"         { printf("KW_LONG\n"); }
-"register"     { printf("KW_REGISTER\n"); }
-"return"       { printf("KW_RETURN\n"); }
-"short"        { printf("KW_SHORT\n"); }
-"signed"       { printf("KW_SIGNED\n"); }
-"sizeof"       { printf("KW_SIZEOF\n"); }
-"static"       { printf("KW_STATIC\n"); }
-"struct"       { printf("KW_STRUCT\n"); }
-"switch"       { printf("KW_SWITCH\n"); }
-"typedef"      { printf("KW_TYPEDEF\n"); }
-"union"        { printf("KW_UNION\n"); }
-"unsigned"     { printf("KW_UNSIGNED\n"); }
-"void"         { printf("KW_VOID\n"); }
-"volatile"     { printf("KW_VOLATILE\n"); }
-"while"        { printf("KW_WHILE\n"); }
-
-    /* Tipos */
-"int"          { printf("TYPE_INT\n"); }
-"char"         { printf("TYPE_CHAR\n"); }
+    /* Palavras-chave e tipos DEVEM vir primeiro */
+"auto"          { return KW_AUTO; }
+"break"         { return KW_BREAK; }
+"case"          { return KW_CASE; }
+"char"          { return TYPE_CHAR; }
+"const"         { return KW_CONST; }
+"continue"      { return KW_CONTINUE; }
+"default"       { return KW_DEFAULT; }
+"do"            { return KW_DO; }
+"else"          { return KW_ELSE; }
+"enum"          { return KW_ENUM; }
+"extern"        { return KW_EXTERN; }
+"float"         { return TYPE_FLOAT; }
+"for"           { return KW_FOR; }
+"if"            { return KW_IF; }
+"int"           { return TYPE_INT; }
+"long"          { return KW_LONG; }
+"return"        { return KW_RETURN; }
+"short"         { return KW_SHORT; }
+"signed"        { return KW_SIGNED; }
+"static"        { return KW_STATIC; }
+"switch"        { return KW_SWITCH; }
+"typedef"       { return KW_TYPEDEF; }
+"unsigned"      { return KW_UNSIGNED; }
+"void"          { return TYPE_VOID; }
+"volatile"      { return KW_VOLATILE; }
+"while"         { return KW_WHILE; }
+"double"        { return TYPE_DOUBLE; }
 
     /* Diretivas de pré-processador */
 ^#include[ \t]+[\"<][a-zA-Z0-9_./]+[\">] { 
@@ -52,127 +59,119 @@ char temp_str[1024];
     char *end = strrchr(yytext, '>') ? strrchr(yytext, '>') : strrchr(yytext, '"');
     if(start && end) {
         *end = '\0';
-        printf("INCLUDE(%s)\n", start+1);
-    } else {
-        printf("INCLUDE_ERROR\n");
-    }
+    } 
 }
 
     /* Diretivas de pré-processador */
-#include      { printf("PREPROC_INCLUDE\n"); }
-#define       { printf("PREPROC_DEFINE\n"); }
-#ifdef        { printf("PREPROC_IFDEF\n"); }
-#endif        { printf("PREPROC_ENDIF\n"); }
+#include      { }
+#define       { }
+#ifdef        { }
+#endif        { }
 
     /* Comentários */
-"//"          { BEGIN(COMMENT); }
-<COMMENT>\n   { BEGIN(INITIAL); }
-<COMMENT>.    { /* Ignora caracteres */ }
+"//"            { BEGIN(COMMENT); }
+<COMMENT>\n     { BEGIN(INITIAL); current_line++; }
+<COMMENT>.      { /* Ignorar */ }
 
-"/*"          { BEGIN(COMMENT_MULTI); }
+"/*"            { BEGIN(COMMENT_MULTI); }
 <COMMENT_MULTI>"*/" { BEGIN(INITIAL); }
-<COMMENT_MULTI>.|\n { /* Ignora conteúdo */ }
+<COMMENT_MULTI>\n   { current_line++; }
+<COMMENT_MULTI>.    { /* Ignorar */ }
 
-    /* Strings */
-\"            { 
+    /* Strings e caracteres (mantido igual) */
+\"              { 
     BEGIN(STRING); 
     temp_str[0] = '\0'; 
 }
 <STRING>{
     \"          { 
         BEGIN(INITIAL); 
-        printf("STRING_LITERAL(%s)\n", temp_str); 
+        yylval.str_val = strdup(temp_str); 
+        return STRING_LITERAL; 
     }
+    \\n         { strcat(temp_str, "\n"); }
+    \\t         { strcat(temp_str, "\t"); }
     \\\"        { strcat(temp_str, "\""); }
-    \\n         { strcat(temp_str, "\\n"); }
-    \\t         { strcat(temp_str, "\\t"); }
-    \\\\        { strcat(temp_str, "\\\\"); }
+    \\\\        { strcat(temp_str, "\\"); }
     [^\\\"]+    { strncat(temp_str, yytext, sizeof(temp_str)-strlen(temp_str)-1); }
-    <<EOF>>     { printf("ERRO: String não fechada\n"); yyterminate(); }
+    <<EOF>>     { 
+        yyerror("String não terminada"); 
+        BEGIN(INITIAL); 
+        return 0; 
+    }
 }
 
-    /* Caracteres */
-\'            { BEGIN(CHAR); }
+\'              { BEGIN(CHAR); }
 <CHAR>{
-    \'          { BEGIN(INITIAL); printf("CHAR_LITERAL(%s)\n", temp_str); }
+    \'          { 
+        BEGIN(INITIAL); 
+        yylval.str_val = strdup(temp_str); 
+        return CHAR_LITERAL; 
+    }
     \\n         { strcpy(temp_str, "\\n"); }
     \\t         { strcpy(temp_str, "\\t"); }
+    \\\'        { strcpy(temp_str, "'"); }
     \\\\        { strcpy(temp_str, "\\\\"); }
     .           { strncpy(temp_str, yytext, sizeof(temp_str)); }
-    <<EOF>>     { printf("ERRO: Char não fechado\n"); yyterminate(); }
+    <<EOF>>     { 
+        yyerror("Caractere não terminado"); 
+        BEGIN(INITIAL); 
+        return 0; 
+    }
 }
 
-    /* Números (regexs corrigidas) */
-0[xX][0-9a-fA-F]+ { printf("HEX_LITERAL(%s)\n", yytext); }
-0[0-7]+       { printf("OCT_LITERAL(%s)\n", yytext); }
-[0-9]+\.[0-9]*([eE][+-]?[0-9]+)? { printf("FLOAT_LITERAL(%s)\n", yytext); }
-[0-9]+        { printf("INT_LITERAL(%s)\n", yytext); }
+    /* Números e operadores (mantido igual) */
+0[xX]{HEX}+     { yylval.int_val = strtol(yytext, NULL, 16); return INT_LITERAL; }
+0{OCT}+         { yylval.int_val = strtol(yytext, NULL, 8); return INT_LITERAL; }
+{DIGIT}+        { yylval.int_val = atoi(yytext); return INT_LITERAL; }
+{DIGIT}+\.{DIGIT}*([eE][+-]?{DIGIT}+)? { 
+    yylval.float_val = atof(yytext); 
+    return FLOAT_LITERAL; 
+}
 
-    /* Operadores e pontuação (ordem corrigida) */
-"=="          { printf("OP_EQ\n"); }
-"!="          { printf("OP_NE\n"); }
-"<="          { printf("OP_LE\n"); }
-">="          { printf("OP_GE\n"); }
-"&&"          { printf("OP_AND\n"); }
-"||"          { printf("OP_OR\n"); }
-"++"          { printf("OP_INC\n"); }
-"--"          { printf("OP_DEC\n"); }
-"+="          { printf("OP_ADD_ASSIGN\n"); }
-"-="          { printf("OP_SUB_ASSIGN\n"); }
-"*="          { printf("OP_MUL_ASSIGN\n"); }
-"/="          { printf("OP_DIV_ASSIGN\n"); }
-"->"          { printf("OP_PTR\n"); }
-"="           { printf("OP_ASSIGN\n"); }
-"+"           { printf("OP_ADD\n"); }
-"-"           { printf("OP_SUB\n"); }
-"*"           { printf("OP_MUL\n"); }
-"/"           { printf("OP_DIV\n"); }
-"<"           { printf("OP_LT\n"); }
-">"           { printf("OP_GT\n"); }
-"!"           { printf("OP_NOT\n"); }
-"&"           { printf("OP_ADDR\n"); }
-"|"           { printf("OP_BIT_OR\n"); }
-"^"           { printf("OP_BIT_XOR\n"); }
-"~"           { printf("OP_BIT_NOT\n"); }
-"?"           { printf("OP_TERNARY\n"); }
-":"           { printf("COLON\n"); }
+"=="            { return OP_EQ; }
+"!="            { return OP_NE; }
+"<="            { return OP_LE; }
+">="            { return OP_GE; }
+"&&"            { return OP_AND; }
+"||"            { return OP_OR; }
+"++"            { return OP_INC; }
+"--"            { return OP_DEC; }
+"+="            { return OP_ADD_ASSIGN; }
+"-="            { return OP_SUB_ASSIGN; }
+"*="            { return OP_MUL_ASSIGN; }
+"/="            { return OP_DIV_ASSIGN; }
+"="             { return OP_ASSIGN; }
+"+"             { return OP_ADD; }
+"-"             { return OP_SUB; }
+"*"             { return OP_MUL; }
+"/"             { return OP_DIV; }
+"<"             { return OP_LT; }
+">"             { return OP_GT; }
+"!"             { return OP_NOT; }
 
-    /* Pontuação */
-";"           { printf("SEMICOLON\n"); }
-","           { printf("COMMA\n"); }
-"."           { printf("DOT\n"); }
-"("           { printf("LPAREN\n"); }
-")"           { printf("RPAREN\n"); }
-"{"           { printf("LBRACE\n"); }
-"}"           { printf("RBRACE\n"); }
-"["           { printf("LBRACKET\n"); }
-"]"           { printf("RBRACKET\n"); }
+";"             { return SEMICOLON; }
+","             { return COMMA; }
+"."             { return DOT; }
+"("             { return LPAREN; }
+")"             { return RPAREN; }
+"{"             { return LBRACE; }
+"}"             { return RBRACE; }
+"["             { return LBRACKET; }
+"]"             { return RBRACKET; }
+":"             { return COLON; }
+"?"             { return OP_TERNARY; }
 
-    /* Identificadores */
-[a-zA-Z_][a-zA-Z0-9_]* { printf("IDENTIFIER(%s)\n", yytext); }
+    /* Identificadores DEVEM vir por último */
+{ID}            { yylval.str_val = strdup(yytext); return IDENTIFIER; }
 
-    /* Espaços e tabs */
-[ \t\n]+      { /* Ignorar */ }
+\n              { current_line++; }
+{SPACE}+        { /* Ignorar */ }
 
-    /* Erros */
-.             { printf("INVALID_TOKEN(%s)\n", yytext); }
+.               { 
+    fprintf(stderr, "Erro léxico linha %d: Caractere inválido '%s'\n", 
+            current_line, yytext); 
+    return 0; 
+}
 
 %%
-
-int yywrap(void) {
-    return 1;
-}
-
-int main(int argc, char **argv) {
-    if (argc > 1) {
-        FILE *f = fopen(argv[1], "r");
-        if (f) {
-            yyin = f;
-        } else {
-            perror("Erro ao abrir arquivo");
-            return 1;
-        }
-    }
-    yylex();
-    return 0;
-}
