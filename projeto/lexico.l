@@ -24,6 +24,8 @@ SPACE       [ \t\r]
 %%
 
     /* Palavras-chave e tipos DEVEM vir primeiro */
+^#include       { return PP_INCLUDE; }
+^#define        { return PP_DEFINE; }
 "auto"          { return KW_AUTO; }
 "break"         { return KW_BREAK; }
 "case"          { return KW_CASE; }
