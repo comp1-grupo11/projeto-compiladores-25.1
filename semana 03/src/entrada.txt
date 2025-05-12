@@ -1,5 +1,0 @@
-if x1 == 10
-{
-   while_flag
-      x1 = x1+2
-}
