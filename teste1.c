@@ -3,6 +3,13 @@
 int main()
 {
     printf("Hello World!\n");
+    int i = 0;
+    i += 1;
+    i++;
+    i--;
+    i -= 1;
+    i *= 1;
+    i /= 1;
     // For loop
     for (int i = 0; i < 10; i = i + 1)
     {

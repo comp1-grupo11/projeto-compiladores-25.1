@@ -42,11 +42,11 @@ clean:
 test: $(TARGET)
 	@echo "Executando testes..."
 	@echo "Teste 1"
-	-@./$(TARGET) teste1.c || true
+	-@./$(TARGET) teste1.c
 	@echo "Teste 2"
-	-@./$(TARGET) teste2.c || true
+	-@./$(TARGET) teste2.c
 	@echo "Teste 3"
-	-@./$(TARGET) teste3.c || true
+	-@./$(TARGET) teste3.c
 
 # Dependências especiais
 lex.yy.o: lex.yy.c parser.tab.h
