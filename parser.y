@@ -13,6 +13,8 @@ void yyerror(const char *s);
 
 %}
 
+%error-verbose
+
 %union {
     char* str_val;
     int int_val;
@@ -46,14 +48,15 @@ void yyerror(const char *s);
 %token SEMICOLON COMMA DOT COLON OP_TERNARY
 
 /* Precedence */
+%right OP_ASSIGN OP_ADD_ASSIGN OP_SUB_ASSIGN OP_MUL_ASSIGN OP_DIV_ASSIGN
 %left OP_OR
 %left OP_AND
 %left OP_EQ OP_NE
 %left OP_LT OP_LE OP_GT OP_GE
 %left OP_ADD OP_SUB
 %left OP_MUL OP_DIV
-%right OP_NOT
-%right OP_ASSIGN
+%right OP_NOT OP_INC OP_DEC
+%left POSTFIX_LEVEL
 
 %%
 
@@ -198,8 +201,10 @@ expr:
     | IDENTIFIER
     | IDENTIFIER LPAREN args RPAREN 
     | IDENTIFIER OP_ASSIGN expr
-    | IDENTIFIER OP_INC
-    | IDENTIFIER OP_DEC
+    | IDENTIFIER OP_INC %prec POSTFIX_LEVEL // Pós-incremento (expr++)
+    | IDENTIFIER OP_DEC %prec POSTFIX_LEVEL // Pós-incremento (expr--)
+    | OP_INC IDENTIFIER // Pré-incremento (++expr)
+    | OP_DEC IDENTIFIER // Pré-incremento (--expr)
     | IDENTIFIER OP_ADD_ASSIGN expr
     | IDENTIFIER OP_SUB_ASSIGN expr
     | IDENTIFIER OP_MUL_ASSIGN expr
@@ -223,9 +228,7 @@ expr:
 %%
 
 void yyerror(const char *s) {
-    fprintf(stderr, "Erro sintático linha %d: %s\nToken: '%s'\n", 
-            yylineno, s, yytext);
-    exit(1);
+    fprintf(stderr, "Erro sintático linha %d: %s\n", yylineno, s);
 }
 
 int main(int argc, char *argv[]) {
