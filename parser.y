@@ -13,7 +13,7 @@ void yyerror(const char *s);
 
 %}
 
-%error-verbose
+%define parse.error verbose
 
 %union {
     char* str_val;
@@ -48,6 +48,8 @@ void yyerror(const char *s);
 %token SEMICOLON COMMA DOT COLON OP_TERNARY
 
 /* Precedence */
+%nonassoc IF_WITHOUT_ELSE // Token fictício para precedência
+%nonassoc KW_ELSE
 %right OP_ASSIGN OP_ADD_ASSIGN OP_SUB_ASSIGN OP_MUL_ASSIGN OP_DIV_ASSIGN
 %left OP_OR
 %left OP_AND
@@ -81,7 +83,6 @@ function_list:
 
 function:
     type_specifier IDENTIFIER LPAREN params RPAREN compound_stmt
-    | type_specifier IDENTIFIER LPAREN RPAREN compound_stmt
 ;
 
 type_specifier:
@@ -118,7 +119,7 @@ stmt_list:
 stmt:
     expr SEMICOLON
     | KW_RETURN expr SEMICOLON
-    | KW_IF LPAREN expr RPAREN stmt
+    | KW_IF LPAREN expr RPAREN stmt %prec IF_WITHOUT_ELSE
     | KW_IF LPAREN expr RPAREN stmt KW_ELSE stmt
     | KW_WHILE LPAREN expr RPAREN stmt
     | KW_FOR LPAREN for_init SEMICOLON for_cond SEMICOLON for_iter RPAREN stmt
@@ -147,7 +148,6 @@ for_iter:
 
 switch_body:
     LBRACE case_list default_case RBRACE
-    | LBRACE case_list RBRACE
 ;
 
 case_list:
