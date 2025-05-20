@@ -55,7 +55,7 @@ SPACE       [ \t\r]
 "double"        { return TYPE_DOUBLE; }
 
     /* Diretivas de pré-processador */
-^#include[ \t]+[\"<][a-zA-Z0-9_./]+[\">] { 
+^#include[ \t]*[\"<][a-zA-Z0-9_./]+[\">] { 
     // Extrai o nome do arquivo
     char *start = strchr(yytext, '<') ? strchr(yytext, '<') : strchr(yytext, '"');
     char *end = strrchr(yytext, '>') ? strrchr(yytext, '>') : strrchr(yytext, '"');

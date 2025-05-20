@@ -139,7 +139,7 @@ for_cond:
 
 for_iter:
     /* empty */
-    | expr
+    | expr_list
 ;
 
 switch_body:
@@ -167,8 +167,17 @@ const_expr:
 ;
 
 var_decl:
-    type_specifier IDENTIFIER
-    | type_specifier IDENTIFIER OP_ASSIGN expr
+    type_specifier declarator_list
+;
+
+declarator_list:
+    declarator
+    | declarator_list COMMA declarator
+;
+
+declarator:
+    IDENTIFIER
+    | IDENTIFIER OP_ASSIGN expr
 ;
 
 args:
@@ -205,6 +214,8 @@ expr:
     | expr OP_LE expr
     | expr OP_GT expr
     | expr OP_GE expr
+    | expr OP_AND expr
+    | expr OP_OR expr
     | OP_NOT expr
     | LPAREN expr RPAREN
 ;
