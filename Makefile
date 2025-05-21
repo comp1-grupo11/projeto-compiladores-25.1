@@ -8,7 +8,7 @@ BISON = bison
 TARGET = parser
 
 # Arquivos fonte
-SRC = parser.tab.c lex.yy.c
+SRC = parser.tab.c lex.yy.c ast.c tabela.c
 OBJ = $(SRC:.c=.o)
 
 # Diretório de saída (opcional)
@@ -41,13 +41,18 @@ clean:
 
 test: $(TARGET)
 	@echo "Executando testes..."
+	@echo "---------------"
 	@echo "Teste 1"
 	-@./$(TARGET) teste1.c
+	@echo "---------------"
 	@echo "Teste 2"
 	-@./$(TARGET) teste2.c
+	@echo "---------------"
 	@echo "Teste 3"
 	-@./$(TARGET) teste3.c
 
 # Dependências especiais
 lex.yy.o: lex.yy.c parser.tab.h
 parser.tab.o: parser.tab.c parser.tab.h
+ast.o: ast.c ast.h
+tabela.o: tabela.c tabela.h

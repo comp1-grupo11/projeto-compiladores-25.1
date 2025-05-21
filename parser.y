@@ -2,6 +2,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "ast.h"
+#include "tabela.h"
 
 extern int yylex();
 extern int yyparse();
@@ -11,6 +13,7 @@ extern int yylineno;
 
 void yyerror(const char *s);
 
+Tipo current_decl_type;
 %}
 
 %define parse.error verbose
@@ -19,6 +22,9 @@ void yyerror(const char *s);
     char* str_val;
     int int_val;
     float float_val;
+    double double_val;
+    Tipo tipo_decl;
+    NoAST *no_ast;   // Para os nós da AST
 }
 
 /* Tokens */
@@ -26,6 +32,7 @@ void yyerror(const char *s);
 %token <str_val> IDENTIFIER STRING_LITERAL CHAR_LITERAL
 %token <int_val> INT_LITERAL
 %token <float_val> FLOAT_LITERAL
+%token <double_val> DOUBLE_LITERAL
 
 /* Keywords */
 %token KW_AUTO KW_BREAK KW_CASE KW_CHAR KW_CONST
@@ -35,6 +42,8 @@ void yyerror(const char *s);
 %token KW_TYPEDEF KW_UNSIGNED KW_VOID KW_VOLATILE KW_WHILE
 
 /* Types */
+%type <tipo_decl> type_specifier
+%type <no_ast> stmt var_decl expr declarator_list declarator
 %token TYPE_INT TYPE_CHAR TYPE_FLOAT TYPE_DOUBLE TYPE_VOID
 
 /* Operators */
@@ -86,11 +95,11 @@ function:
 ;
 
 type_specifier:
-    TYPE_INT
-    | TYPE_CHAR
-    | TYPE_FLOAT
-    | TYPE_DOUBLE
-    | TYPE_VOID
+    TYPE_INT        { $$ = TIPO_INT; current_decl_type = TIPO_INT; }
+    | TYPE_CHAR     { $$ = TIPO_CHAR; current_decl_type = TIPO_CHAR; }
+    | TYPE_FLOAT    { $$ = TIPO_FLOAT; current_decl_type = TIPO_FLOAT; }
+    | TYPE_DOUBLE   { $$ = TIPO_DOUBLE; current_decl_type = TIPO_DOUBLE; }
+    | TYPE_VOID     { $$ = TIPO_VOID; current_decl_type = TIPO_VOID; }
 ;
 
 params:
@@ -118,16 +127,16 @@ stmt_list:
 
 stmt:
     expr SEMICOLON
-    | KW_RETURN expr SEMICOLON
-    | KW_IF LPAREN expr RPAREN stmt %prec IF_WITHOUT_ELSE
-    | KW_IF LPAREN expr RPAREN stmt KW_ELSE stmt
-    | KW_WHILE LPAREN expr RPAREN stmt
-    | KW_FOR LPAREN for_init SEMICOLON for_cond SEMICOLON for_iter RPAREN stmt
-    | KW_SWITCH LPAREN expr RPAREN switch_body
-    | compound_stmt
+    | KW_RETURN expr SEMICOLON {$$ = NULL;}
+    | KW_IF LPAREN expr RPAREN stmt %prec IF_WITHOUT_ELSE {$$ = NULL;}
+    | KW_IF LPAREN expr RPAREN stmt KW_ELSE stmt {$$ = NULL;}
+    | KW_WHILE LPAREN expr RPAREN stmt {$$ = NULL;}
+    | KW_FOR LPAREN for_init SEMICOLON for_cond SEMICOLON for_iter RPAREN stmt {$$ = NULL;}
+    | KW_SWITCH LPAREN expr RPAREN switch_body {$$ = NULL;}
+    | compound_stmt {$$ = NULL;}
     | var_decl SEMICOLON
-    | KW_BREAK SEMICOLON
-    | KW_CONTINUE SEMICOLON
+    | KW_BREAK SEMICOLON {$$ = NULL;}
+    | KW_CONTINUE SEMICOLON {$$ = NULL;}
 ;
 
 for_init:
@@ -170,7 +179,9 @@ const_expr:
 ;
 
 var_decl:
-    type_specifier declarator_list
+    type_specifier declarator_list {
+        $$ = $2;
+    }
 ;
 
 declarator_list:
@@ -179,8 +190,49 @@ declarator_list:
 ;
 
 declarator:
-    IDENTIFIER
-    | IDENTIFIER OP_ASSIGN expr
+    IDENTIFIER {
+        // $1 é o nome do IDENTIFIER
+        Simbolo *s = buscarSimbolo($1);
+        if (s) { // Se o símbolo já existe na tabela (e no escopo visível)
+            yyerror("Redeclaração de variável.");
+        } else {
+            int tamanho = 0;
+            switch(current_decl_type) {
+                case TIPO_INT:    tamanho = 4; break;
+                case TIPO_FLOAT:  tamanho = 4; break;
+                case TIPO_DOUBLE: tamanho = 8; break;
+                case TIPO_CHAR:   tamanho = 1; break;
+                default:          tamanho = 0; break;
+            }
+            inserirSimbolo($1, current_decl_type, VARIAVEL, tamanho, 0, yylineno, 0, ESCOPO_LOCAL);
+        }
+        $$ = NULL;
+    }
+    | IDENTIFIER OP_ASSIGN expr {
+        // $1 é o nome do IDENTIFIER, $3 é o nó da AST da expressão de inicialização
+        Simbolo *s = buscarSimbolo($1);
+        if (s) { // Se o símbolo já existe na tabela (e no escopo visível)
+            yyerror("Redeclaração de variável.");
+            $$ = NULL;
+        } else {
+            int tamanho = 0;
+            switch(current_decl_type) {
+                case TIPO_INT:    tamanho = 4; break;
+                case TIPO_FLOAT:  tamanho = 4; break;
+                case TIPO_DOUBLE: tamanho = 8; break;
+                case TIPO_CHAR:   tamanho = 1; break;
+                default:          tamanho = 0; break;
+            }
+            inserirSimbolo($1, current_decl_type, VARIAVEL, tamanho, 0, yylineno, 0, ESCOPO_LOCAL);
+
+            $$ = criarNoOp('=', criarNoId($1, current_decl_type), $3);
+
+            Simbolo *inserted_s = buscarSimbolo($1);
+            if (inserted_s) {
+                inserted_s->linha_ultimo_uso = yylineno;
+            }
+        }
+    }
 ;
 
 args:
@@ -194,35 +246,60 @@ expr_list:
 ;
 
 expr:
-    INT_LITERAL
-    | FLOAT_LITERAL
-    | CHAR_LITERAL
-    | STRING_LITERAL
-    | IDENTIFIER
-    | IDENTIFIER LPAREN args RPAREN 
-    | IDENTIFIER OP_ASSIGN expr
-    | IDENTIFIER OP_INC %prec POSTFIX_LEVEL // Pós-incremento (expr++)
-    | IDENTIFIER OP_DEC %prec POSTFIX_LEVEL // Pós-incremento (expr--)
-    | OP_INC IDENTIFIER // Pré-incremento (++expr)
-    | OP_DEC IDENTIFIER // Pré-incremento (--expr)
-    | IDENTIFIER OP_ADD_ASSIGN expr
-    | IDENTIFIER OP_SUB_ASSIGN expr
-    | IDENTIFIER OP_MUL_ASSIGN expr
-    | IDENTIFIER OP_DIV_ASSIGN expr
-    | expr OP_ADD expr
-    | expr OP_SUB expr
-    | expr OP_MUL expr
-    | expr OP_DIV expr
-    | expr OP_EQ expr
-    | expr OP_NE expr
-    | expr OP_LT expr
-    | expr OP_LE expr
-    | expr OP_GT expr
-    | expr OP_GE expr
-    | expr OP_AND expr
-    | expr OP_OR expr
-    | OP_NOT expr
-    | LPAREN expr RPAREN
+    INT_LITERAL      { int val = $1; $$ = criarNoNum(TIPO_INT, &val); }
+    | FLOAT_LITERAL  { float val = $1; $$ = criarNoNum(TIPO_FLOAT, &val); }
+    | DOUBLE_LITERAL { double val = $1; $$ = criarNoNum(TIPO_DOUBLE, &val); }
+    | CHAR_LITERAL {$$ = NULL;}
+    | STRING_LITERAL {$$ = NULL;}
+    | IDENTIFIER {
+        Simbolo *s = buscarSimbolo($1);
+        if (!s) {
+            yyerror("Identificador não declarado.");
+            // int zero = 0;
+            // $$ = criarNoNum(INT, &zero); // Retorna um nó numérico de erro
+        } else {
+            $$ = criarNoId($1, s->tipo);
+            s->linha_ultimo_uso = yylineno;
+        }
+    }
+    | IDENTIFIER LPAREN args RPAREN  {$$ = NULL;}
+    | IDENTIFIER OP_ASSIGN expr {
+        Simbolo *s = buscarSimbolo($1);
+        if (!s) {
+            yyerror("Identificador não declarado para atribuição.");
+            // int zero = 0;
+            // $$ = criarNoNum(INT, &zero); // Nó de erro
+        } else {
+            if (!tiposCompativeis(s->tipo, $3->tipo)) {
+                fprintf(stderr, "Erro de tipo: Atribuição de tipo incompatível para '%s' na linha %d.\n", s->nome, yylineno);
+                // Você pode retornar um nó de erro ou tentar uma conversão implícita
+            }
+            $$ = criarNoOp('=', criarNoId($1, s->tipo), $3);
+            s->linha_ultimo_uso = yylineno;
+        }
+    }
+    | IDENTIFIER OP_INC %prec POSTFIX_LEVEL {$$ = NULL;} // Pós-incremento (expr++)
+    | IDENTIFIER OP_DEC %prec POSTFIX_LEVEL {$$ = NULL;} // Pós-incremento (expr--)
+    | OP_INC IDENTIFIER {$$ = NULL;} // Pré-incremento (++expr)
+    | OP_DEC IDENTIFIER  {$$ = NULL;}// Pré-incremento (--expr)
+    | IDENTIFIER OP_ADD_ASSIGN expr {$$ = NULL;}
+    | IDENTIFIER OP_SUB_ASSIGN expr {$$ = NULL;}
+    | IDENTIFIER OP_MUL_ASSIGN expr {$$ = NULL;}
+    | IDENTIFIER OP_DIV_ASSIGN expr {$$ = NULL;}
+    | expr OP_ADD expr {$$ = NULL;}
+    | expr OP_SUB expr {$$ = NULL;}
+    | expr OP_MUL expr {$$ = NULL;}
+    | expr OP_DIV expr {$$ = NULL;}
+    | expr OP_EQ expr {$$ = NULL;}
+    | expr OP_NE expr {$$ = NULL;}
+    | expr OP_LT expr {$$ = NULL;}
+    | expr OP_LE expr {$$ = NULL;}
+    | expr OP_GT expr {$$ = NULL;}
+    | expr OP_GE expr {$$ = NULL;}
+    | expr OP_AND expr {$$ = NULL;}
+    | expr OP_OR expr {$$ = NULL;}
+    | OP_NOT expr {$$ = NULL;}
+    | LPAREN expr RPAREN {$$ = NULL;}
 ;
 
 %%
