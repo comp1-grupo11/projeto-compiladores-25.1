@@ -8,7 +8,7 @@ BISON = bison
 TARGET = parser
 
 # Arquivos fonte
-SRC = parser.tab.c lex.yy.c ast.c
+SRC = parser.tab.c lex.yy.c ast.c tabela.c
 OBJ = $(SRC:.c=.o)
 
 # Diretório de saída (opcional)
@@ -41,6 +41,7 @@ clean:
 	rm -f parser.tab.* lex.yy.c
 
 test: $(TARGET)
+<<<<<<< HEAD
 	@echo "\n🔍 Iniciando testes..."
 	@for test in teste1.c teste2.c teste3.c; do \
 		echo "\n🔬 Testando $$test:"; \
@@ -52,3 +53,21 @@ test: $(TARGET)
 lex.yy.o: lex.yy.c parser.tab.h ast.h
 parser.tab.o: parser.tab.c parser.tab.h ast.h
 ast.o: ast.c ast.h
+=======
+	@echo "Executando testes..."
+	@echo "---------------"
+	@echo "Teste 1"
+	-@./$(TARGET) teste1.c
+	@echo "---------------"
+	@echo "Teste 2"
+	-@./$(TARGET) teste2.c
+	@echo "---------------"
+	@echo "Teste 3"
+	-@./$(TARGET) teste3.c
+
+# Dependências especiais
+lex.yy.o: lex.yy.c parser.tab.h
+parser.tab.o: parser.tab.c parser.tab.h
+ast.o: ast.c ast.h
+tabela.o: tabela.c tabela.h
+>>>>>>> 0441173 (Início do analisador semântico)

@@ -1,5 +1,6 @@
 %{
 extern void yyerror(const char *s);
+#include "ast.h"
 #include "parser.tab.h"
 #include <stdlib.h>
 #include <string.h>
