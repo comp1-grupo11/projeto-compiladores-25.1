@@ -20,7 +20,7 @@ all: $(TARGET)
 
 $(TARGET): $(OBJ)
 	@echo "Ligando objetos..."
-	$(CC) $(CFLAGS) $^ -o $@ -lfl
+	$(CC) $(CFLAGS) $^ -o $@
 	@echo "Compilador construído com sucesso: $(TARGET)"
 
 parser.tab.c parser.tab.h: parser.y

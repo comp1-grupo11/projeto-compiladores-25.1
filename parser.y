@@ -17,6 +17,7 @@ void yyerror(const char *s);
     char* str_val;
     int int_val;
     float float_val;
+    char* code;
 }
 
 /* Tokens */
@@ -55,10 +56,23 @@ void yyerror(const char *s);
 %right OP_NOT
 %right OP_ASSIGN
 
+%type <code> program function function_list params param_list param_decl compound_stmt stmt_list stmt expr type_specifier
+%type <code> for_init for_cond for_iter
+%type <code> switch_body case_list case_stmt default_case
+%type <code> var_decl args expr_list
+
 %%
 
 program:
-    preprocessor_list function_list
+    preprocessor_list function_list {
+        FILE *tsout = fopen("output.ts", "w");
+        if (tsout != NULL) {
+            fprintf(tsout, "%s\n", $2);
+            fclose(tsout);
+        } else {
+            fprintf(stderr, "Erro ao criar arquivo output.ts\n");
+        }
+    }
 ;
 
 preprocessor_list:
@@ -77,53 +91,92 @@ function_list:
 ;
 
 function:
-    type_specifier IDENTIFIER LPAREN params RPAREN compound_stmt
-    | type_specifier IDENTIFIER LPAREN RPAREN compound_stmt
+    type_specifier IDENTIFIER LPAREN params RPAREN compound_stmt {
+        asprintf(&$$, "function %s(%s): %s %s", $2, $4, $1, $6);
+    }
+    | type_specifier IDENTIFIER LPAREN RPAREN compound_stmt {
+        asprintf(&$$, "function %s(): %s %s", $2, $1, $5);
+    }
 ;
 
 type_specifier:
-    TYPE_INT
-    | TYPE_CHAR
-    | TYPE_FLOAT
-    | TYPE_DOUBLE
-    | TYPE_VOID
+    TYPE_INT { $$ = strdup("number"); }
+    | TYPE_CHAR { $$ = strdup("string"); }
+    | TYPE_FLOAT { $$ = strdup("number"); }
+    | TYPE_DOUBLE { $$ = strdup("number"); }
+    | TYPE_VOID { $$ = strdup("void"); }
 ;
 
 params:
-    param_list
-    | /* empty */
+    param_list { $$ = $1; }
+    | /* empty */ { $$ = strdup(""); }
 ;
 
 param_list:
-    param_decl
-    | param_list COMMA param_decl
+    param_decl { $$ = $1; }
+    | param_list COMMA param_decl {
+        asprintf(&$$, "%s, %s", $1, $3);
+    }
 ;
 
 param_decl:
-    type_specifier IDENTIFIER
+    type_specifier IDENTIFIER {
+        asprintf(&$$, "%s: %s", $2, $1);
+    }
 ;
 
 compound_stmt:
-    LBRACE stmt_list RBRACE
+    LBRACE stmt_list RBRACE {
+        asprintf(&$$, "{\n%s\n}", $2);
+    }
 ;
 
 stmt_list:
-    /* empty */
-    | stmt_list stmt
+    /* empty */ { $$ = strdup(""); }
+    | stmt_list stmt {
+        asprintf(&$$, "%s\n%s", $1, $2);
+    }
 ;
 
 stmt:
-    expr SEMICOLON
-    | KW_RETURN expr SEMICOLON
-    | KW_IF LPAREN expr RPAREN stmt
-    | KW_IF LPAREN expr RPAREN stmt KW_ELSE stmt
-    | KW_WHILE LPAREN expr RPAREN stmt
-    | KW_FOR LPAREN for_init SEMICOLON for_cond SEMICOLON for_iter RPAREN stmt
-    | KW_SWITCH LPAREN expr RPAREN switch_body
-    | compound_stmt
-    | var_decl SEMICOLON
-    | KW_BREAK SEMICOLON
-    | KW_CONTINUE SEMICOLON
+    expr SEMICOLON {
+        asprintf(&$$, "%s;", $1);
+    }
+    | KW_RETURN expr SEMICOLON {
+        asprintf(&$$, "return %s;", $2);
+    }
+    | KW_IF LPAREN expr RPAREN stmt {
+        asprintf(&$$, "if (%s) %s", $3, $5);
+    }
+    | KW_IF LPAREN expr RPAREN stmt KW_ELSE stmt {
+        asprintf(&$$, "if (%s) %s else %s", $3, $5, $7);
+    }
+    | KW_WHILE LPAREN expr RPAREN stmt {
+        asprintf(&$$, "while (%s) %s", $3, $5);
+    }
+    | KW_FOR LPAREN for_init SEMICOLON for_cond SEMICOLON for_iter RPAREN stmt {
+        asprintf(&$$, "for (%s; %s; %s) %s", $3, $5, $7, $9);
+    }
+    | KW_SWITCH LPAREN expr RPAREN switch_body {
+        asprintf(&$$, "switch (%s) %s", $3, $5);
+    }
+    | compound_stmt {
+        $$ = $1;
+    }
+    | KW_BREAK SEMICOLON {
+        $$ = strdup("break;");
+    }
+    | KW_CONTINUE SEMICOLON {
+        $$ = strdup("continue;");
+    }
+    var_decl:
+    type_specifier IDENTIFIER {
+        asprintf(&$$, "let %s: %s", $2, $1);
+    }
+    | type_specifier IDENTIFIER OP_ASSIGN expr {
+        asprintf(&$$, "let %s: %s = %s", $2, $1, $4);
+    }
+;
 ;
 
 for_init:
@@ -182,31 +235,81 @@ expr_list:
 ;
 
 expr:
-    INT_LITERAL
-    | FLOAT_LITERAL
-    | CHAR_LITERAL
-    | STRING_LITERAL
-    | IDENTIFIER
-    | IDENTIFIER LPAREN args RPAREN 
-    | IDENTIFIER OP_ASSIGN expr
-    | IDENTIFIER OP_INC
-    | IDENTIFIER OP_DEC
-    | IDENTIFIER OP_ADD_ASSIGN expr
-    | IDENTIFIER OP_SUB_ASSIGN expr
-    | IDENTIFIER OP_MUL_ASSIGN expr
-    | IDENTIFIER OP_DIV_ASSIGN expr
-    | expr OP_ADD expr
-    | expr OP_SUB expr
-    | expr OP_MUL expr
-    | expr OP_DIV expr
-    | expr OP_EQ expr
-    | expr OP_NE expr
-    | expr OP_LT expr
-    | expr OP_LE expr
-    | expr OP_GT expr
-    | expr OP_GE expr
-    | OP_NOT expr
-    | LPAREN expr RPAREN
+    INT_LITERAL {
+        asprintf(&$$, "%d", $1);
+    }
+    | FLOAT_LITERAL {
+        asprintf(&$$, "%f", $1);
+    }
+    | CHAR_LITERAL {
+        asprintf(&$$, "'%s'", yytext);
+    }
+    | STRING_LITERAL {
+        asprintf(&$$, "\"%s\"", $1);
+    }
+    | IDENTIFIER {
+        $$ = strdup($1);
+    }
+    | IDENTIFIER LPAREN args RPAREN {
+        asprintf(&$$, "%s(%s)", $1, $3);
+    }
+    | IDENTIFIER OP_ASSIGN expr {
+        asprintf(&$$, "%s = %s", $1, $3);
+    }
+    | IDENTIFIER OP_INC {
+        asprintf(&$$, "%s++", $1);
+    }
+    | IDENTIFIER OP_DEC {
+        asprintf(&$$, "%s--", $1);
+    }
+    | IDENTIFIER OP_ADD_ASSIGN expr {
+        asprintf(&$$, "%s += %s", $1, $3);
+    }
+    | IDENTIFIER OP_SUB_ASSIGN expr {
+        asprintf(&$$, "%s -= %s", $1, $3);
+    }
+    | IDENTIFIER OP_MUL_ASSIGN expr {
+        asprintf(&$$, "%s *= %s", $1, $3);
+    }
+    | IDENTIFIER OP_DIV_ASSIGN expr {
+        asprintf(&$$, "%s /= %s", $1, $3);
+    }
+    | expr OP_ADD expr {
+        asprintf(&$$, "(%s + %s)", $1, $3);
+    }
+    | expr OP_SUB expr {
+        asprintf(&$$, "(%s - %s)", $1, $3);
+    }
+    | expr OP_MUL expr {
+        asprintf(&$$, "(%s * %s)", $1, $3);
+    }
+    | expr OP_DIV expr {
+        asprintf(&$$, "(%s / %s)", $1, $3);
+    }
+    | expr OP_EQ expr {
+        asprintf(&$$, "(%s === %s)", $1, $3);
+    }
+    | expr OP_NE expr {
+        asprintf(&$$, "(%s !== %s)", $1, $3);
+    }
+    | expr OP_LT expr {
+        asprintf(&$$, "(%s < %s)", $1, $3);
+    }
+    | expr OP_LE expr {
+        asprintf(&$$, "(%s <= %s)", $1, $3);
+    }
+    | expr OP_GT expr {
+        asprintf(&$$, "(%s > %s)", $1, $3);
+    }
+    | expr OP_GE expr {
+        asprintf(&$$, "(%s >= %s)", $1, $3);
+    }
+    | OP_NOT expr {
+        asprintf(&$$, "!(%s)", $2);
+    }
+    | LPAREN expr RPAREN {
+        asprintf(&$$, "(%s)", $2);
+    }
 ;
 
 %%
