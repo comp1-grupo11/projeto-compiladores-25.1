@@ -229,78 +229,6 @@ NoAST *criarNoNum(Tipo tipo, void *valor, int yylineno)
     no->direita = NULL;
     no->linha = yylineno;
 
-<<<<<<< HEAD
-    switch (tipo)
-    {
-    case TIPO_INT:
-        novoNo->valor_numerico.val_int = *(int *)valor;
-        break;
-    case TIPO_FLOAT:
-        novoNo->valor_numerico.val_float = *(float *)valor;
-        break;
-    case TIPO_DOUBLE:
-        novoNo->valor_numerico.val_double = *(double *)valor;
-        break;
-    default:
-        fprintf(stderr, "Tipo numerico invalido para criarNoNum.\n");
-        free(novoNo);
-        return NULL;
-    }
-    return novoNo;
-}
-
-NoAST *criarNoId(char *nome, Tipo tipo)
-{
-    NoAST *no = malloc(sizeof(NoAST));
-    strcpy(no->nome, nome);
-    no->operador = 0;
-    no->tipo = tipo;
-    no->esquerda = no->direita = NULL;
-    return no;
-}
-
-void imprimirAST(NoAST *no)
-{
-    if (no == NULL)
-    {
-        return;
-    }
-
-    if (no->operador != '\0')
-    {
-        printf("(%c ", no->operador);
-        imprimirAST(no->esquerda);
-        printf(" ");
-        imprimirAST(no->direita);
-        printf(")");
-    }
-    else if (no->nome[0] != '\0')
-    {
-        printf("%s", no->nome);
-    }
-    else
-    {
-        switch (no->tipo)
-        {
-        case TIPO_INT:
-            printf("%d", no->valor_numerico.val_int);
-            break;
-        case TIPO_FLOAT:
-            printf("%f", no->valor_numerico.val_float);
-            break;
-        case TIPO_DOUBLE:
-            printf("%lf", no->valor_numerico.val_double);
-            break;
-        default:
-            printf("[ERRO TIPO NUMERICO]");
-            break;
-        }
-    }
-}
-
-int tiposCompativeis(Tipo t1, Tipo t2)
-{
-=======
     switch (tipo)
     {
     case TIPO_INT:
@@ -414,27 +342,27 @@ void imprimirAST(NoAST *no)
         printf("(");
         imprimirAST(no->esquerda);
         printf(" %s ", // Agora vamos imprimir o nome do operador
-               (no->data.op_type == OP_ADD_TYPE) ? "+" : (no->data.op_type == OP_SUB_TYPE) ? "-"
-                                                     : (no->data.op_type == OP_MUL_TYPE) ? "*"
-                                                     : (no->data.op_type == OP_DIV_TYPE) ? "/"
-                                                     : (no->data.op_type == OP_ASSIGN_TYPE) ? "="
-                                                     : (no->data.op_type == OP_EQ_TYPE) ? "=="
-                                                     : (no->data.op_type == OP_NE_TYPE) ? "!="
-                                                     : (no->data.op_type == OP_LT_TYPE) ? "<"
-                                                     : (no->data.op_type == OP_LE_TYPE) ? "<="
-                                                     : (no->data.op_type == OP_GT_TYPE) ? ">"
-                                                     : (no->data.op_type == OP_GE_TYPE) ? ">="
-                                                     : (no->data.op_type == OP_AND_TYPE) ? "&&"
-                                                     : (no->data.op_type == OP_OR_TYPE) ? "||"
-                                                     : (no->data.op_type == OP_NOT_TYPE) ? "!"
-                                                     : (no->data.op_type == OP_INC_TYPE) ? "++"
-                                                     : (no->data.op_type == OP_DEC_TYPE) ? "--"
+               (no->data.op_type == OP_ADD_TYPE) ? "+" : (no->data.op_type == OP_SUB_TYPE)      ? "-"
+                                                     : (no->data.op_type == OP_MUL_TYPE)        ? "*"
+                                                     : (no->data.op_type == OP_DIV_TYPE)        ? "/"
+                                                     : (no->data.op_type == OP_ASSIGN_TYPE)     ? "="
+                                                     : (no->data.op_type == OP_EQ_TYPE)         ? "=="
+                                                     : (no->data.op_type == OP_NE_TYPE)         ? "!="
+                                                     : (no->data.op_type == OP_LT_TYPE)         ? "<"
+                                                     : (no->data.op_type == OP_LE_TYPE)         ? "<="
+                                                     : (no->data.op_type == OP_GT_TYPE)         ? ">"
+                                                     : (no->data.op_type == OP_GE_TYPE)         ? ">="
+                                                     : (no->data.op_type == OP_AND_TYPE)        ? "&&"
+                                                     : (no->data.op_type == OP_OR_TYPE)         ? "||"
+                                                     : (no->data.op_type == OP_NOT_TYPE)        ? "!"
+                                                     : (no->data.op_type == OP_INC_TYPE)        ? "++"
+                                                     : (no->data.op_type == OP_DEC_TYPE)        ? "--"
                                                      : (no->data.op_type == OP_ADD_ASSIGN_TYPE) ? "+="
                                                                                                 : // Adicione todos
                                                          (no->data.op_type == OP_SUB_ASSIGN_TYPE) ? "-="
-                                                     : (no->data.op_type == OP_MUL_ASSIGN_TYPE) ? "*="
-                                                     : (no->data.op_type == OP_DIV_ASSIGN_TYPE) ? "/="
-                                                                                                : "[OP_UNKNOWN]"); // Um valor padrão para operadores não tratados
+                                                     : (no->data.op_type == OP_MUL_ASSIGN_TYPE)   ? "*="
+                                                     : (no->data.op_type == OP_DIV_ASSIGN_TYPE)   ? "/="
+                                                                                                  : "[OP_UNKNOWN]"); // Um valor padrão para operadores não tratados
         imprimirAST(no->direita);                                                                                  // Para unários, direita é NULL, não será impresso.
         printf(")");
         break;
@@ -512,6 +440,5 @@ int tiposCompativeis(Tipo t1, Tipo t2)
     // Lógica de compatibilidade de tipos.
     // Por exemplo, int é compatível com float (com coerção), mas float não é com char.
     // Para um compilador simples, a igualdade é um bom ponto de partida.
->>>>>>> 1bf1ea1 (Implementação do analisador semântico)
     return t1 == t2;
 }

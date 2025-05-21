@@ -11,8 +11,12 @@ TARGET = parser
 SRC = parser.tab.c lex.yy.c ast.c tabela.c
 OBJ = $(SRC:.c=.o)
 
-# Diretório de saída (opcional)
+# Diretórios
 BUILD_DIR = build
+TEST_DIR = tests
+
+# Arquivos de teste
+TEST_FILES = $(wildcard $(TEST_DIR)/*.c)
 
 .PHONY: all clean test
 
@@ -41,19 +45,12 @@ clean:
 	rm -f parser.tab.* lex.yy.c
 
 test: $(TARGET)
-<<<<<<< HEAD
 	@echo "\n🔍 Iniciando testes..."
-	@for test in teste1.c teste2.c teste3.c; do \
+	@for test in $(TEST_FILES); do \
 		echo "\n🔬 Testando $$test:"; \
 		./$(TARGET) $$test || echo "❌ Falha no teste $$test"; \
 	done
 	@echo "\n🏁 Todos os testes concluídos\n"
-
-# Dependências especiais
-lex.yy.o: lex.yy.c parser.tab.h ast.h
-parser.tab.o: parser.tab.c parser.tab.h ast.h
-ast.o: ast.c ast.h
-=======
 	@echo "Executando testes..."
 	@echo "---------------"
 	@echo "Teste 1"
@@ -64,6 +61,7 @@ ast.o: ast.c ast.h
 	@echo "---------------"
 	@echo "Teste 3"
 	-@./tests/$(TARGET) teste3.c
+=======
 
 # Dependências especiais
 lex.yy.o: lex.yy.c parser.tab.h
