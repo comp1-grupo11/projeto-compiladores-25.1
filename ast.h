@@ -86,28 +86,28 @@ typedef struct NoAST {
 } NoAST;
 
 // Funções de criação de nós
-NoAST *criarNoOp(OperatorType op, NoAST *esq, NoAST *dir, int linha);
-NoAST *criarNoUnario(OperatorType op, NoAST *operando, int linha);
-NoAST *criarNoNum(Tipo tipo, void *valor, int linha);
-NoAST *criarNoId(char *nome, Tipo tipo, int linha);
-NoAST *criarNoChar(char val, int linha);
-NoAST *criarNoString(char *val, int linha);
-NoAST *criarNoErro(int linha);
+NoAST *criarNoOp(OperatorType op, NoAST *esq, NoAST *dir);
+NoAST *criarNoUnario(OperatorType op, NoAST *operando);
+NoAST *criarNoNum(Tipo tipo, void *valor);
+NoAST *criarNoId(char *nome, Tipo tipo);
+NoAST *criarNoChar(char val);
+NoAST *criarNoString(char *val);
+NoAST *criarNoErro();
 
-// Funções para comandos (statements) - NOVAS
-NoAST *criarNoDeclaracaoVar(char *nome, Tipo tipo_declarado, NoAST *inicializacao_expr, int linha); // Atualizada
-NoAST *criarNoReturn(NoAST *expr_retorno, int linha);
-NoAST *criarNoIf(NoAST *condicao, NoAST *bloco_then, NoAST *bloco_else, int linha); // bloco_else pode ser NULL
-NoAST *criarNoWhile(NoAST *condicao, NoAST *bloco, int linha);
-NoAST *criarNoFor(NoAST *init, NoAST *cond, NoAST *iter, NoAST *bloco, int linha);
-NoAST *criarNoSwitch(NoAST *expr_controle, NoAST *corpo_switch, int linha);
-NoAST *criarNoSwitchBody(NoAST *case_list_head, NoAST *default_node, int linha);
-NoAST *criarNoCase(NoAST *case_expr, NoAST *statement_list, int linha);
-NoAST *criarNoDefault(NoAST *statement_list, int linha);
-NoAST *criarNoCompoundStmt(NoAST *lista_statements, int linha); // Para blocos {}
-NoAST *criarNoBreak(int linha);
-NoAST *criarNoContinue(int linha);
-NoAST *criarNoChamadaFuncao(char *nome_func, NoAST *args_list, int linha); // Assumindo lista de args como NoAST->proximo
+// Funções para comandos (statements)
+NoAST *criarNoDeclaracaoVar(char *nome, Tipo tipo_declarado, NoAST *inicializacao_expr);
+NoAST *criarNoReturn(NoAST *expr_retorno);
+NoAST *criarNoIf(NoAST *condicao, NoAST *bloco_then, NoAST *bloco_else); // bloco_else pode ser NULL
+NoAST *criarNoWhile(NoAST *condicao, NoAST *bloco);
+NoAST *criarNoFor(NoAST *init, NoAST *cond, NoAST *iter, NoAST *bloco);
+NoAST *criarNoSwitch(NoAST *expr_controle, NoAST *corpo_switch);
+NoAST *criarNoSwitchBody(NoAST *case_list_head, NoAST *default_node);
+NoAST *criarNoCase(NoAST *case_expr, NoAST *statement_list);
+NoAST *criarNoDefault(NoAST *statement_list);
+NoAST *criarNoCompoundStmt(NoAST *lista_statements); // Para blocos {}
+NoAST *criarNoBreak();
+NoAST *criarNoContinue();
+NoAST *criarNoChamadaFuncao(char *nome_func, NoAST *args_list);
 
 // Funções de manipulação da AST
 void imprimirAST(NoAST *no);
