@@ -3,12 +3,11 @@
 
 #include "ast.h"
 
-// Enum para a categoria do símbolo (opcional, mas recomendado)
+// Enum para a categoria do símbolo
 typedef enum {
     VARIAVEL,
     FUNCAO,
     PARAMETRO,
-    // Adicione outras categorias conforme necessário (ex: CONSTANTE, TIPO)
 } CategoriaSimbolo;
 
 // Enum para o escopo (ex: global, local)
