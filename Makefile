@@ -43,13 +43,13 @@ test: $(TARGET)
 	@echo "Executando testes..."
 	@echo "---------------"
 	@echo "Teste 1"
-	-@./$(TARGET) teste1.c
+	-@./tests/$(TARGET) teste1.c
 	@echo "---------------"
 	@echo "Teste 2"
-	-@./$(TARGET) teste2.c
+	-@./tests/$(TARGET) teste2.c
 	@echo "---------------"
 	@echo "Teste 3"
-	-@./$(TARGET) teste3.c
+	-@./tests/$(TARGET) teste3.c
 
 # Dependências especiais
 lex.yy.o: lex.yy.c parser.tab.h
