@@ -11,45 +11,46 @@ TARGET = parser
 SRC = parser.tab.c lex.yy.c ast.c tabela.c
 OBJ = $(SRC:.c=.o)
 
-# Diretório de saída (opcional)
+# Diretórios
 BUILD_DIR = build
+TEST_DIR = tests
+
+# Arquivos de teste
+TEST_FILES = $(wildcard $(TEST_DIR)/*.c)
 
 .PHONY: all clean test
 
 all: $(TARGET)
 
 $(TARGET): $(OBJ)
-	@echo "Ligando objetos..."
+	@echo "\n🔗 Ligando objetos..."
 	$(CC) $(CFLAGS) $^ -o $@ -lfl
-	@echo "Compilador construído com sucesso: $(TARGET)"
+	@echo "\n✅ Compilador construído: \033[1;32m$(TARGET)\033[0m\n"
 
-parser.tab.c parser.tab.h: parser.y
-	@echo "Gerando parser com Bison..."
+parser.tab.c parser.tab.h: parser.y ast.h
+	@echo "\n🔄 Gerando parser com Bison..."
 	$(BISON) -d parser.y
 
 lex.yy.c: lexico.l parser.tab.h
-	@echo "Gerando lexer com Flex..."
+	@echo "\n🔄 Gerando lexer com Flex..."
 	$(FLEX) lexico.l
 
 %.o: %.c
+	@echo "🔨 Compilando $<"
 	$(CC) $(CFLAGS) -c $< -o $@
 
 clean:
-	@echo "Limpando arquivos gerados..."
+	@echo "\n🧹 Limpando arquivos gerados..."
 	rm -f $(TARGET) *.o *.output
 	rm -f parser.tab.* lex.yy.c
 
 test: $(TARGET)
-	@echo "Executando testes..."
-	@echo "---------------"
-	@echo "Teste 1"
-	-@./tests/$(TARGET) teste1.c
-	@echo "---------------"
-	@echo "Teste 2"
-	-@./tests/$(TARGET) teste2.c
-	@echo "---------------"
-	@echo "Teste 3"
-	-@./tests/$(TARGET) teste3.c
+	@echo "\n🔍 Iniciando testes..."
+	@for test in $(TEST_FILES); do \
+		echo "\n🔬 Testando $$test:"; \
+		./$(TARGET) $$test || echo "❌ Falha no teste $$test"; \
+	done
+	@echo "\n🏁 Todos os testes concluídos\n"
 
 # Dependências especiais
 lex.yy.o: lex.yy.c parser.tab.h
