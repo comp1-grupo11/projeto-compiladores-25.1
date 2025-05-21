@@ -68,4 +68,7 @@ lex.yy.o: lex.yy.c parser.tab.h
 parser.tab.o: parser.tab.c parser.tab.h
 ast.o: ast.c ast.h
 tabela.o: tabela.c tabela.h
+<<<<<<< HEAD
 >>>>>>> 0441173 (Início do analisador semântico)
+=======
+>>>>>>> c34336b (subindo ast)

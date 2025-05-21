@@ -551,3 +551,8 @@ void liberarAST(NoAST *no)
 
         free(no);
     }
+
+    int tiposCompativeis(Tipo t1, Tipo t2)
+    {
+        return t1 == t2;
+    }
