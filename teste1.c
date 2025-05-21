@@ -5,13 +5,14 @@
 int main()
 {
     printf("Hello World!\n");
-    int i = 0;
+    int i = 0, a = 0;
     i += 1;
     i++;
     i--;
     i -= 1;
     i *= 1;
     i /= 1;
+    a += ++i;
     // For loop
     for (int i = 0, j = 1, k = 0; (i < 10 && k <= 0) || !(j < i); i = i + 1, j++, k--)
     {

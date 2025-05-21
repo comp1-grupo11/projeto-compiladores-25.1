@@ -63,9 +63,10 @@ void imprimirTabela() {
                 case TIPO_INT:    strcpy(tipo_str, "INT"); break;
                 case TIPO_FLOAT:  strcpy(tipo_str, "FLOAT"); break;
                 case TIPO_DOUBLE: strcpy(tipo_str, "DOUBLE"); break;
-                case TIPO_CHAR:   strcpy(tipo_str, "CHAR"); break;
+                case TIPO_CHAR:   strcpy(tipo_str, "CHAR"); break;   // Adicionado
+                case TIPO_STRING: strcpy(tipo_str, "STRING"); break; // Adicionado
                 case TIPO_VOID:   strcpy(tipo_str, "VOID"); break;
-                case TIPO_ERRO:   strcpy(tipo_str, "ERRO"); break;
+                case TIPO_ERRO:   strcpy(tipo_str, "ERRO"); break; // Adicionado
                 default:     strcpy(tipo_str, "UNKNOWN"); break;
             }
 

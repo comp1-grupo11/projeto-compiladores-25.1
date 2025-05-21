@@ -43,7 +43,8 @@ Tipo current_decl_type;
 
 /* Types */
 %type <tipo_decl> type_specifier
-%type <no_ast> stmt var_decl expr declarator_list declarator
+%type <no_ast> stmt compound_stmt stmt_list var_decl declarator_list declarator expr args arg_list expr_list
+%type <no_ast> for_init for_cond for_iter switch_body case_list case_stmt default_case const_expr // Os não-terminais que você usa nas regras 'for' e 'switch'
 %token TYPE_INT TYPE_CHAR TYPE_FLOAT TYPE_DOUBLE TYPE_VOID
 
 /* Operators */
@@ -117,65 +118,100 @@ param_decl:
 ;
 
 compound_stmt:
-    LBRACE stmt_list RBRACE
+    LBRACE stmt_list RBRACE { $$ = criarNoCompoundStmt($2, yylineno); }
 ;
 
 stmt_list:
-    /* empty */
-    | stmt_list stmt
+    /* vazio */ { $$ = NULL; }
+    | stmt_list stmt {
+        // Encadeia statements
+        NoAST *head = $1;
+        if (head == NULL) {
+            $$ = $2;
+        } else {
+            NoAST *current = head;
+            while (current->proximo != NULL) {
+                current = current->proximo;
+            }
+            current->proximo = $2;
+            $$ = head;
+        }
+    }
 ;
 
 stmt:
-    expr SEMICOLON
-    | KW_RETURN expr SEMICOLON {$$ = NULL;}
-    | KW_IF LPAREN expr RPAREN stmt %prec IF_WITHOUT_ELSE {$$ = NULL;}
-    | KW_IF LPAREN expr RPAREN stmt KW_ELSE stmt {$$ = NULL;}
-    | KW_WHILE LPAREN expr RPAREN stmt {$$ = NULL;}
-    | KW_FOR LPAREN for_init SEMICOLON for_cond SEMICOLON for_iter RPAREN stmt {$$ = NULL;}
-    | KW_SWITCH LPAREN expr RPAREN switch_body {$$ = NULL;}
-    | compound_stmt {$$ = NULL;}
-    | var_decl SEMICOLON
-    | KW_BREAK SEMICOLON {$$ = NULL;}
-    | KW_CONTINUE SEMICOLON {$$ = NULL;}
+    expr SEMICOLON                 { $$ = $1; }
+    | KW_RETURN expr SEMICOLON     { $$ = criarNoReturn($2, yylineno); }
+    | KW_IF LPAREN expr RPAREN stmt %prec IF_WITHOUT_ELSE { $$ = criarNoIf($3, $5, NULL, yylineno); }
+    | KW_IF LPAREN expr RPAREN stmt KW_ELSE stmt { $$ = criarNoIf($3, $5, $7, yylineno); }
+    | KW_WHILE LPAREN expr RPAREN stmt { $$ = criarNoWhile($3, $5, yylineno); }
+    | KW_FOR LPAREN for_init SEMICOLON for_cond SEMICOLON for_iter RPAREN stmt {
+        $$ = criarNoFor($3, $5, $7, $9, yylineno);
+    }
+    | KW_SWITCH LPAREN expr RPAREN switch_body { $$ = criarNoSwitch($3, $5, yylineno); }
+    | compound_stmt                { $$ = $1; }
+    | var_decl SEMICOLON           { $$ = $1; }
+    | KW_BREAK SEMICOLON           { $$ = criarNoBreak(yylineno); }
+    | KW_CONTINUE SEMICOLON        { $$ = criarNoContinue(yylineno); }
 ;
 
 for_init:
-    /* empty */
-    | var_decl
-    | expr
+    /* empty */ { $$ = NULL; }
+    | var_decl { $$ = $1; }
+    | expr { $$ = $1; }
 ;
 
 for_cond:
-    /* empty */
-    | expr
+    /* empty */ { $$ = NULL; }
+    | expr { $$ = $1; }
 ;
 
 for_iter:
-    /* empty */
-    | expr_list
+    /* empty */ { $$ = NULL; }
+    | expr_list { $$ = $1; }
 ;
 
 switch_body:
-    LBRACE case_list default_case RBRACE
+    LBRACE case_list default_case RBRACE {
+        // Agora, o $2 é a cabeça da lista de cases, e o $3 é o nó do default
+        $$ = criarNoSwitchBody($2, $3, yylineno);
+    }
 ;
 
 case_list:
-    /* empty */
-    | case_list case_stmt
+    /* vazio */ { $$ = NULL; } // Pode ter um switch sem cases (apenas default)
+    | case_list case_stmt {
+        NoAST *head = $1;
+        if (head == NULL) {
+            $$ = $2;
+        } else {
+            NoAST *current = head;
+            while (current->proximo != NULL) {
+                current = current->proximo;
+            }
+            current->proximo = $2;
+            $$ = head;
+        }
+    }
 ;
 
 case_stmt:
-    KW_CASE const_expr COLON stmt_list
+    KW_CASE const_expr COLON stmt_list {
+        $$ = criarNoCase($2, $4, yylineno); // $2 é a expressão do case, $4 é a lista de statements
+    }
 ;
 
 default_case:
-    /* empty */
-    | KW_DEFAULT COLON stmt_list
+    /* vazio */ { $$ = NULL; }
+    | KW_DEFAULT COLON stmt_list {
+        $$ = criarNoDefault($3, yylineno); // $3 é a lista de statements do default
+    }
 ;
 
 const_expr:
-    INT_LITERAL
-    | CHAR_LITERAL
+    INT_LITERAL { int val = $1; $$ = criarNoNum(TIPO_INT, &val, yylineno); }
+    | CHAR_LITERAL { char val_char = $1[0]; $$ = criarNoChar(val_char, yylineno); free($1); }
+    | STRING_LITERAL { $$ = criarNoString($1, yylineno); }
 ;
 
 var_decl:
@@ -185,16 +221,32 @@ var_decl:
 ;
 
 declarator_list:
-    declarator
-    | declarator_list COMMA declarator
+    declarator {
+        $$ = $1; // O primeiro declarador é a cabeça da lista
+    }
+    | declarator_list COMMA declarator {
+        // Encadeia o novo declarador ($3) ao final da lista ($1)
+        // Percorre a lista para encontrar o último nó e anexa o novo
+        NoAST *head = $1;
+        if (head == NULL) { // Se a lista anterior ($1) for nula por algum erro
+            $$ = $3;
+        } else {
+            NoAST *current = head;
+            while (current->proximo != NULL) {
+                current = current->proximo;
+            }
+            current->proximo = $3;
+            $$ = head; // Retorna a cabeça original da lista
+        }
+    }
 ;
 
 declarator:
-    IDENTIFIER {
-        // $1 é o nome do IDENTIFIER
+    IDENTIFIER { // Ex: int a;
         Simbolo *s = buscarSimbolo($1);
-        if (s) { // Se o símbolo já existe na tabela (e no escopo visível)
+        if (s) {
             yyerror("Redeclaração de variável.");
+            $$ = criarNoErro(yylineno);
         } else {
             int tamanho = 0;
             switch(current_decl_type) {
@@ -205,15 +257,14 @@ declarator:
                 default:          tamanho = 0; break;
             }
             inserirSimbolo($1, current_decl_type, VARIAVEL, tamanho, 0, yylineno, 0, ESCOPO_LOCAL);
+            $$ = criarNoDeclaracaoVar($1, current_decl_type, NULL, yylineno);
         }
-        $$ = NULL;
     }
-    | IDENTIFIER OP_ASSIGN expr {
-        // $1 é o nome do IDENTIFIER, $3 é o nó da AST da expressão de inicialização
+    | IDENTIFIER OP_ASSIGN expr { // Ex: int b = 10;
         Simbolo *s = buscarSimbolo($1);
-        if (s) { // Se o símbolo já existe na tabela (e no escopo visível)
+        if (s) {
             yyerror("Redeclaração de variável.");
-            $$ = NULL;
+            $$ = criarNoErro(yylineno);
         } else {
             int tamanho = 0;
             switch(current_decl_type) {
@@ -221,11 +272,20 @@ declarator:
                 case TIPO_FLOAT:  tamanho = 4; break;
                 case TIPO_DOUBLE: tamanho = 8; break;
                 case TIPO_CHAR:   tamanho = 1; break;
+                case TIPO_VOID:
+                case TIPO_ERRO:
                 default:          tamanho = 0; break;
             }
             inserirSimbolo($1, current_decl_type, VARIAVEL, tamanho, 0, yylineno, 0, ESCOPO_LOCAL);
 
-            $$ = criarNoOp('=', criarNoId($1, current_decl_type), $3);
+            // Proteção contra $3 nulo ou erro
+            if ($3 == NULL || $3->tipo_dado == TIPO_ERRO || !tiposCompativeis(current_decl_type, $3->tipo_dado)) {
+                fprintf(stderr, "Erro de tipo: Atribuição de tipo incompatível para '%s' (tipo %d) com expressão (tipo %d) na linha %d.\n",
+                        $1, current_decl_type, ($3 ? $3->tipo_dado : TIPO_ERRO), yylineno);
+                $$ = criarNoErro(yylineno);
+            } else {
+                $$ = criarNoDeclaracaoVar($1, current_decl_type, $3, yylineno);
+            }
 
             Simbolo *inserted_s = buscarSimbolo($1);
             if (inserted_s) {
@@ -236,76 +296,199 @@ declarator:
 ;
 
 args:
-    /* empty */
-    | expr_list
+    /* vazio */ { $$ = NULL; } // Chamada de função sem argumentos
+    | arg_list { $$ = $1; }
+;
+
+arg_list:
+    expr { $$ = $1; }
+    | arg_list COMMA expr {
+        // Encadeia argumentos
+        NoAST *head = $1;
+        if (head == NULL) {
+            $$ = $3;
+        } else {
+            NoAST *current = head;
+            while (current->proximo != NULL) {
+                current = current->proximo;
+            }
+            current->proximo = $3;
+            $$ = head;
+        }
+    }
 ;
 
 expr_list:
-    expr
-    | expr_list COMMA expr
+    expr { $$ = $1; }
+    | expr_list COMMA expr {
+        NoAST *head = $1;
+        if (head == NULL) {
+            $$ = $3;
+        } else {
+            NoAST *current = head;
+            while (current->proximo != NULL) {
+                current = current->proximo;
+            }
+            current->proximo = $3;
+            $$ = head;
+        }
+    }
 ;
 
 expr:
-    INT_LITERAL      { int val = $1; $$ = criarNoNum(TIPO_INT, &val); }
-    | FLOAT_LITERAL  { float val = $1; $$ = criarNoNum(TIPO_FLOAT, &val); }
-    | DOUBLE_LITERAL { double val = $1; $$ = criarNoNum(TIPO_DOUBLE, &val); }
-    | CHAR_LITERAL {$$ = NULL;}
-    | STRING_LITERAL {$$ = NULL;}
+    INT_LITERAL      { int val = $1; $$ = criarNoNum(TIPO_INT, &val, yylineno); }
+    | FLOAT_LITERAL  { float val = $1; $$ = criarNoNum(TIPO_FLOAT, &val, yylineno); }
+    | DOUBLE_LITERAL { double val = $1; $$ = criarNoNum(TIPO_DOUBLE, &val, yylineno); }
+    | CHAR_LITERAL   { char val_char = $1[0]; $$ = criarNoChar(val_char, yylineno); free($1); }
+    | STRING_LITERAL { $$ = criarNoString($1, yylineno); }
     | IDENTIFIER {
         Simbolo *s = buscarSimbolo($1);
         if (!s) {
             yyerror("Identificador não declarado.");
-            // int zero = 0;
-            // $$ = criarNoNum(INT, &zero); // Retorna um nó numérico de erro
+            $$ = criarNoErro(yylineno);
         } else {
-            $$ = criarNoId($1, s->tipo);
+            $$ = criarNoId($1, s->tipo, yylineno);
             s->linha_ultimo_uso = yylineno;
         }
     }
-    | IDENTIFIER LPAREN args RPAREN  {$$ = NULL;}
+    | IDENTIFIER LPAREN args RPAREN { // Função é $1, argumentos são $3
+        Simbolo *s = buscarSimbolo($1);
+        if (!s || s->categoria != FUNCAO) {
+            yyerror("Chamada de função para identificador não declarado ou não é função.");
+            $$ = criarNoErro(yylineno);
+        } else {
+            $$ = criarNoChamadaFuncao($1, $3, yylineno);
+        }
+    }
+
+    // Atribuição (=)
     | IDENTIFIER OP_ASSIGN expr {
         Simbolo *s = buscarSimbolo($1);
         if (!s) {
             yyerror("Identificador não declarado para atribuição.");
-            // int zero = 0;
-            // $$ = criarNoNum(INT, &zero); // Nó de erro
+            $$ = criarNoErro(yylineno);
         } else {
-            if (!tiposCompativeis(s->tipo, $3->tipo)) {
-                fprintf(stderr, "Erro de tipo: Atribuição de tipo incompatível para '%s' na linha %d.\n", s->nome, yylineno);
-                // Você pode retornar um nó de erro ou tentar uma conversão implícita
+            if ($3 == NULL || $3->tipo_dado == TIPO_ERRO || !tiposCompativeis(s->tipo, $3->tipo_dado)) {
+                fprintf(stderr, "Erro de tipo: Atribuição de tipo incompatível para '%s' (tipo %d) com expressao (tipo %d) na linha %d.\n",
+                        s->nome, s->tipo, ($3 ? $3->tipo_dado : TIPO_ERRO), yylineno);
+                $$ = criarNoErro(yylineno);
+            } else {
+                $$ = criarNoOp(OP_ASSIGN_TYPE, criarNoId($1, s->tipo, yylineno), $3, yylineno);
+                s->linha_ultimo_uso = yylineno;
             }
-            $$ = criarNoOp('=', criarNoId($1, s->tipo), $3);
-            s->linha_ultimo_uso = yylineno;
         }
     }
-    | IDENTIFIER OP_INC %prec POSTFIX_LEVEL {$$ = NULL;} // Pós-incremento (expr++)
-    | IDENTIFIER OP_DEC %prec POSTFIX_LEVEL {$$ = NULL;} // Pós-incremento (expr--)
-    | OP_INC IDENTIFIER {$$ = NULL;} // Pré-incremento (++expr)
-    | OP_DEC IDENTIFIER  {$$ = NULL;}// Pré-incremento (--expr)
-    | IDENTIFIER OP_ADD_ASSIGN expr {$$ = NULL;}
-    | IDENTIFIER OP_SUB_ASSIGN expr {$$ = NULL;}
-    | IDENTIFIER OP_MUL_ASSIGN expr {$$ = NULL;}
-    | IDENTIFIER OP_DIV_ASSIGN expr {$$ = NULL;}
-    | expr OP_ADD expr {$$ = NULL;}
-    | expr OP_SUB expr {$$ = NULL;}
-    | expr OP_MUL expr {$$ = NULL;}
-    | expr OP_DIV expr {$$ = NULL;}
-    | expr OP_EQ expr {$$ = NULL;}
-    | expr OP_NE expr {$$ = NULL;}
-    | expr OP_LT expr {$$ = NULL;}
-    | expr OP_LE expr {$$ = NULL;}
-    | expr OP_GT expr {$$ = NULL;}
-    | expr OP_GE expr {$$ = NULL;}
-    | expr OP_AND expr {$$ = NULL;}
-    | expr OP_OR expr {$$ = NULL;}
-    | OP_NOT expr {$$ = NULL;}
-    | LPAREN expr RPAREN {$$ = NULL;}
+
+    // Pós-incremento/decremento
+    | IDENTIFIER OP_INC %prec POSTFIX_LEVEL {
+        Simbolo *s = buscarSimbolo($1);
+        if (!s) { yyerror("Identificador não declarado para incremento."); $$ = criarNoErro(yylineno); }
+        else { $$ = criarNoUnario(OP_INC_TYPE, criarNoId($1, s->tipo, yylineno), yylineno); }
+    }
+    | IDENTIFIER OP_DEC %prec POSTFIX_LEVEL {
+        Simbolo *s = buscarSimbolo($1);
+        if (!s) { yyerror("Identificador não declarado para decremento."); $$ = criarNoErro(yylineno); }
+        else { $$ = criarNoUnario(OP_DEC_TYPE, criarNoId($1, s->tipo, yylineno), yylineno); }
+    }
+
+    // Pré-incremento/decremento
+    | OP_INC IDENTIFIER {
+        Simbolo *s = buscarSimbolo($2);
+        if (!s) { yyerror("Identificador não declarado para incremento."); $$ = criarNoErro(yylineno); }
+        else { $$ = criarNoUnario(OP_INC_TYPE, criarNoId($2, s->tipo, yylineno), yylineno); }
+    }
+    | OP_DEC IDENTIFIER {
+        Simbolo *s = buscarSimbolo($2);
+        if (!s) { yyerror("Identificador não declarado para decremento."); $$ = criarNoErro(yylineno); }
+        else { $$ = criarNoUnario(OP_DEC_TYPE, criarNoId($2, s->tipo, yylineno), yylineno); }
+    }
+
+    // Atribuições compostas (+=, -=, *=, /=, etc.)
+    | IDENTIFIER OP_ADD_ASSIGN expr { // a += b vira a = a + b
+        Simbolo *s = buscarSimbolo($1);
+        if (!s) { yyerror("Identificador não declarado para atribuição composta."); $$ = criarNoErro(yylineno); }
+        else if ($3 == NULL || $3->tipo_dado == TIPO_ERRO || !tiposCompativeis(s->tipo, $3->tipo_dado)) {
+            fprintf(stderr, "Erro de tipo: Atribuição composta (+=) de tipo incompatível para '%s' na linha %d.\n", $1, yylineno);
+            $$ = criarNoErro(yylineno);
+        } else {
+            NoAST *id_node = criarNoId($1, s->tipo, yylineno);
+            NoAST *soma_node = criarNoOp(OP_ADD_TYPE, criarNoId($1, s->tipo, yylineno), $3, yylineno);
+            $$ = criarNoOp(OP_ASSIGN_TYPE, id_node, soma_node, yylineno);
+        }
+    }
+    | IDENTIFIER OP_SUB_ASSIGN expr { // a -= b vira a = a - b
+        Simbolo *s = buscarSimbolo($1);
+        if (!s) { yyerror("Identificador não declarado para atribuição composta."); $$ = criarNoErro(yylineno); }
+        else if ($3 == NULL || $3->tipo_dado == TIPO_ERRO || !tiposCompativeis(s->tipo, $3->tipo_dado)) {
+            fprintf(stderr, "Erro de tipo: Atribuição composta (-=) de tipo incompatível para '%s' na linha %d.\n", $1, yylineno);
+            $$ = criarNoErro(yylineno);
+        } else {
+            NoAST *id_node = criarNoId($1, s->tipo, yylineno);
+            NoAST *sub_node = criarNoOp(OP_SUB_TYPE, criarNoId($1, s->tipo, yylineno), $3, yylineno);
+            $$ = criarNoOp(OP_ASSIGN_TYPE, id_node, sub_node, yylineno);
+        }
+    }
+    | IDENTIFIER OP_MUL_ASSIGN expr { // a *= b vira a = a * b
+        Simbolo *s = buscarSimbolo($1);
+        if (!s) { yyerror("Identificador não declarado para atribuição composta."); $$ = criarNoErro(yylineno); }
+        else if ($3 == NULL || $3->tipo_dado == TIPO_ERRO || !tiposCompativeis(s->tipo, $3->tipo_dado)) {
+            fprintf(stderr, "Erro de tipo: Atribuição composta (*=) de tipo incompatível para '%s' na linha %d.\n", $1, yylineno);
+            $$ = criarNoErro(yylineno);
+        } else {
+            NoAST *id_node = criarNoId($1, s->tipo, yylineno);
+            NoAST *mul_node = criarNoOp(OP_MUL_TYPE, criarNoId($1, s->tipo, yylineno), $3, yylineno);
+            $$ = criarNoOp(OP_ASSIGN_TYPE, id_node, mul_node, yylineno);
+        }
+    }
+    | IDENTIFIER OP_DIV_ASSIGN expr { // a /= b vira a = a / b
+        Simbolo *s = buscarSimbolo($1);
+        if (!s) { yyerror("Identificador não declarado para atribuição composta."); $$ = criarNoErro(yylineno); }
+        else if ($3 == NULL || $3->tipo_dado == TIPO_ERRO || !tiposCompativeis(s->tipo, $3->tipo_dado)) {
+            fprintf(stderr, "Erro de tipo: Atribuição composta (/=) de tipo incompatível para '%s' na linha %d.\n", $1, yylineno);
+            $$ = criarNoErro(yylineno);
+        } else {
+            NoAST *id_node = criarNoId($1, s->tipo, yylineno);
+            NoAST *div_node = criarNoOp(OP_DIV_TYPE, criarNoId($1, s->tipo, yylineno), $3, yylineno);
+            $$ = criarNoOp(OP_ASSIGN_TYPE, id_node, div_node, yylineno);
+        }
+    }
+
+    // Operações binárias
+    | expr OP_ADD expr { $$ = criarNoOp(OP_ADD_TYPE, $1, $3, yylineno); }
+    | expr OP_SUB expr { $$ = criarNoOp(OP_SUB_TYPE, $1, $3, yylineno); }
+    | expr OP_MUL expr { $$ = criarNoOp(OP_MUL_TYPE, $1, $3, yylineno); }
+    | expr OP_DIV expr { $$ = criarNoOp(OP_DIV_TYPE, $1, $3, yylineno); }
+
+    // Operadores de Comparação
+    | expr OP_EQ expr { $$ = criarNoOp(OP_EQ_TYPE, $1, $3, yylineno); }
+    | expr OP_NE expr { $$ = criarNoOp(OP_NE_TYPE, $1, $3, yylineno); }
+    | expr OP_LT expr { $$ = criarNoOp(OP_LT_TYPE, $1, $3, yylineno); }
+    | expr OP_LE expr { $$ = criarNoOp(OP_LE_TYPE, $1, $3, yylineno); }
+    | expr OP_GT expr { $$ = criarNoOp(OP_GT_TYPE, $1, $3, yylineno); }
+    | expr OP_GE expr { $$ = criarNoOp(OP_GE_TYPE, $1, $3, yylineno); }
+
+    // Operadores Lógicos
+    | expr OP_AND expr { $$ = criarNoOp(OP_AND_TYPE, $1, $3, yylineno); }
+    | expr OP_OR expr { $$ = criarNoOp(OP_OR_TYPE, $1, $3, yylineno); }
+    | OP_NOT expr { $$ = criarNoUnario(OP_NOT_TYPE, $2, yylineno); } // Negação unária
+    | LPAREN expr RPAREN                    {$$ = $2;} // Propaga o nó da expressão dentro dos parênteses
 ;
 
 %%
 
 void yyerror(const char *s) {
     fprintf(stderr, "Erro sintático linha %d: %s\n", yylineno, s);
+}
+
+void inicializarTabelaSimbolosGlobais() {
+    // Insere printf na tabela de símbolos.
+    // O tipo de retorno de printf é int.
+    // A categoria é FUNCAO.
+    // O num_parametros pode ser -1 ou um valor especial para indicar função variádica.
+    inserirSimbolo("printf", TIPO_INT, FUNCAO, 0, -1, 0, 0, ESCOPO_GLOBAL); // Tamanho 0, endereço 0, linha 0 para globais
+    // Adicione outras funções da biblioteca padrão que você precisa
+    inserirSimbolo("scanf", TIPO_INT, FUNCAO, 0, -1, 0, 0, ESCOPO_GLOBAL);
+    // ...
 }
 
 int main(int argc, char *argv[]) {
@@ -316,7 +499,8 @@ int main(int argc, char *argv[]) {
             return 1;
         }
     }
-    
+    inicializarTabelaSimbolosGlobais();
+
     yyparse();
     
     return 0;
