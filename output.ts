@@ -1,17 +1,7 @@
-function main(): number {
-
-printf("Hello World!
-");
-number
-i += 1;
-i++;
-i--;
-i -= 1;
-i *= 1;
-i /= 1;
-for (number; (i < 10); (i = i + 1)) {
-
-switch (i) i
-}
-return 0;
+function soma(a: number, b: number): number {
+  if (a > b) {
+    return a;
+  } else {
+    return b;
+  }
 }

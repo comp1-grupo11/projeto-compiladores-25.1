@@ -21,8 +21,7 @@ void yyerror(const char *s);
 }
 
 /* Tokens */
-%token PP_INCLUDE PP_DEFINE
-%token <str_val> IDENTIFIER STRING_LITERAL CHAR_LITERAL
+%token <str_val> PP_INCLUDE PP_DEFINE IDENTIFIER STRING_LITERAL CHAR_LITERAL
 %token <int_val> INT_LITERAL
 %token <float_val> FLOAT_LITERAL
 
@@ -56,10 +55,10 @@ void yyerror(const char *s);
 %right OP_NOT
 %right OP_ASSIGN
 
-%type <code> program function function_list params param_list param_decl compound_stmt stmt_list stmt expr type_specifier
+%type <code> program function function_list params param_list param_decl compound_stmt stmt_list stmt expr type_specifier preprocessor preprocessor_list
 %type <code> for_init for_cond for_iter
 %type <code> switch_body case_list case_stmt default_case
-%type <code> var_decl args expr_list
+%type <code> var_decl args expr_list const_expr
 
 %%
 
@@ -76,13 +75,19 @@ program:
 ;
 
 preprocessor_list:
-    /* empty */
-    | preprocessor_list preprocessor
+    /* empty */ { $$ = strdup(""); }
+    | preprocessor_list preprocessor {
+        asprintf(&$$, "%s\n%s", $1, $2);
+    }
 ;
 
 preprocessor:
-    PP_INCLUDE
-    | PP_DEFINE
+    PP_INCLUDE STRING_LITERAL {
+        asprintf(&$$, "// include %s", $2);
+    }
+    | PP_DEFINE IDENTIFIER expr {
+        asprintf(&$$, "// define %s %s", $2, $3);
+    }
 ;
 
 function_list:
@@ -169,54 +174,62 @@ stmt:
     | KW_CONTINUE SEMICOLON {
         $$ = strdup("continue;");
     }
-    var_decl:
-    type_specifier IDENTIFIER {
-        asprintf(&$$, "let %s: %s", $2, $1);
+    | type_specifier IDENTIFIER {
+        asprintf(&$$, "let %s: %s;", $2, $1);
     }
     | type_specifier IDENTIFIER OP_ASSIGN expr {
-        asprintf(&$$, "let %s: %s = %s", $2, $1, $4);
+        asprintf(&$$, "let %s: %s = %s;", $2, $1, $4);
     }
-;
 ;
 
 for_init:
-    /* empty */
+    /* empty */ { $$ = strdup(""); }
     | var_decl
     | expr
 ;
 
 for_cond:
-    /* empty */
+    /* empty */ { $$ = strdup(""); }
     | expr
 ;
 
 for_iter:
-    /* empty */
+    /* empty */ { $$ = strdup(""); }
     | expr
 ;
 
 switch_body:
-    LBRACE case_list default_case RBRACE
-    | LBRACE case_list RBRACE
+    LBRACE case_list default_case RBRACE {
+        asprintf(&$$, "{\n%s\n%s\n}", $2, $3);
+    }
+    | LBRACE case_list RBRACE {
+        asprintf(&$$, "{\n%s\n}", $2);
+    }
 ;
 
 case_list:
-    /* empty */
-    | case_list case_stmt
+    /* empty */ { $$ = strdup(""); }
+    | case_list case_stmt {
+        asprintf(&$$, "%s\n%s", $1, $2);
+    }
 ;
 
 case_stmt:
-    KW_CASE const_expr COLON stmt_list
+    KW_CASE const_expr COLON stmt_list {
+        asprintf(&$$, "case %s:\n%s", $2, $4);
+    }
 ;
 
 default_case:
-    /* empty */
-    | KW_DEFAULT COLON stmt_list
+    /* empty */ { $$ = strdup(""); }
+    | KW_DEFAULT COLON stmt_list {
+        asprintf(&$$, "default:\n%s", $3);
+    }
 ;
 
 const_expr:
-    INT_LITERAL
-    | CHAR_LITERAL
+    INT_LITERAL { asprintf(&$$, "%d", $1); }
+    | CHAR_LITERAL { asprintf(&$$, "'%s'", yytext); }
 ;
 
 var_decl:
@@ -225,13 +238,15 @@ var_decl:
 ;
 
 args:
-    /* empty */
+    /* empty */ { $$ = strdup(""); }
     | expr_list
 ;
 
 expr_list:
-    expr
-    | expr_list COMMA expr
+    expr { $$ = $1; }
+    | expr_list COMMA expr {
+        asprintf(&$$, "%s, %s", $1, $3);
+    }
 ;
 
 expr:
@@ -309,6 +324,9 @@ expr:
     }
     | LPAREN expr RPAREN {
         asprintf(&$$, "(%s)", $2);
+    }
+    | expr OP_TERNARY expr COLON expr {
+        asprintf(&$$, "(%s ? %s : %s)", $1, $3, $5);
     }
 ;
 
