@@ -51,24 +51,9 @@ test: $(TARGET)
 		./$(TARGET) $$test || echo "❌ Falha no teste $$test"; \
 	done
 	@echo "\n🏁 Todos os testes concluídos\n"
-	@echo "Executando testes..."
-	@echo "---------------"
-	@echo "Teste 1"
-	-@./tests/$(TARGET) teste1.c
-	@echo "---------------"
-	@echo "Teste 2"
-	-@./tests/$(TARGET) teste2.c
-	@echo "---------------"
-	@echo "Teste 3"
-	-@./tests/$(TARGET) teste3.c
-=======
 
 # Dependências especiais
 lex.yy.o: lex.yy.c parser.tab.h
 parser.tab.o: parser.tab.c parser.tab.h
 ast.o: ast.c ast.h
 tabela.o: tabela.c tabela.h
-<<<<<<< HEAD
->>>>>>> 0441173 (Início do analisador semântico)
-=======
->>>>>>> c34336b (subindo ast)

@@ -325,30 +325,22 @@ NoAST *criarNoErro()
 NoAST *criarNoAtribuicaoCampo(NoAST *struct_expr, char *campo, NoAST *valor)
 {
     NoAST *no = alocarNoAST(NODE_FIELD_ASSIGN);
-    no->esquerda = struct_expr; // expressão da struct (ex: p1)
-    no->direita = valor;        // valor a ser atribuído (ex: 10)
+    no->esquerda = struct_expr;
+    no->direita = valor;
     no->tipo_dado = (valor) ? valor->tipo_dado : TIPO_ERRO;
-    no->data.nome_id[0] = '\0';
-    if (campo)
-    {
-        strncpy(no->data.nome_id, campo, sizeof(no->data.nome_id) - 1);
-        no->data.nome_id[sizeof(no->data.nome_id) - 1] = '\0';
-    }
+    strncpy(no->data.field_info.campo_nome, campo, sizeof(no->data.field_info.campo_nome) - 1);
+    no->data.field_info.campo_nome[sizeof(no->data.field_info.campo_nome) - 1] = '\0';
     return no;
 }
 
 NoAST *criarNoAcessoCampo(NoAST *struct_expr, char *campo)
 {
     NoAST *no = alocarNoAST(NODE_FIELD_ACCESS);
-    no->esquerda = struct_expr; // expressão da struct (ex: p1)
+    no->esquerda = struct_expr;
     no->direita = NULL;
-    no->tipo_dado = TIPO_ERRO; // O tipo real pode ser resolvido na análise semântica
-    no->data.nome_id[0] = '\0';
-    if (campo)
-    {
-        strncpy(no->data.nome_id, campo, sizeof(no->data.nome_id) - 1);
-        no->data.nome_id[sizeof(no->data.nome_id) - 1] = '\0';
-    }
+    no->tipo_dado = TIPO_ERRO;
+    strncpy(no->data.field_info.campo_nome, campo, sizeof(no->data.field_info.campo_nome) - 1);
+    no->data.field_info.campo_nome[sizeof(no->data.field_info.campo_nome) - 1] = '\0';
     return no;
 }
 
@@ -566,23 +558,15 @@ void liberarAST(NoAST *no)
         break;
     }
 
-    // Implementação da função de criação de nó de retorno
-    NoAST *criarNoReturn(NoAST * expr_retorno, int linha)
-    {
-        NoAST *no = alocarNoAST(NODE_RETURN, linha);
-        no->esquerda = expr_retorno; // A expressão de retorno é o filho esquerdo
-        NoAST *criarNoReturn(NoAST * expr_retorno)
-        {
-            NoAST *no = alocarNoAST(NODE_RETURN);
-            no->esquerda = expr_retorno;                                          // A expressão de retorno é o filho esquerdo
-            no->tipo_dado = (expr_retorno) ? expr_retorno->tipo_dado : TIPO_VOID; // Tipo do retorno
-            return no;
-        }
+    liberarAST(no->esquerda);
+    liberarAST(no->direita);
+    liberarAST(no->centro);
+    liberarAST(no->proximo);
 
-        free(no);
-    }
+    free(no);
+}
 
-    int tiposCompativeis(Tipo t1, Tipo t2)
-    {
-        return t1 == t2;
-    }
+int tiposCompativeis(Tipo t1, Tipo t2)
+{
+    return t1 == t2;
+}

@@ -75,16 +75,15 @@ typedef enum
 // Estrutura do nó da Árvore Sintática Abstrata (AST)
 typedef struct NoAST
 {
-    NodeType tipo_no; // O tipo de nó da AST (operador, literal, identificador, etc.)
-    Tipo tipo_dado;   // O tipo de dado subjacente (TIPO_INT, TIPO_CHAR, etc.)
-    int linha;        // Número da linha no código fonte
+    NodeType tipo_no;
+    Tipo tipo_dado;
+    int linha;
 
     union
     {
-        OperatorType op_type; // Para NODE_OPERATOR e NODE_UNARY_OP
-
+        OperatorType op_type;
         struct
-        { // Para NODE_LITERAL
+        {
             int val_int;
             float val_float;
             double val_double;
@@ -92,22 +91,28 @@ typedef struct NoAST
             char *val_string;
         } literal;
 
-        char nome_id[32]; // Para NODE_IDENTIFIER
+        char nome_id[32];
 
         struct
-        { // Para NODE_DECLARATION
+        {
             char *nome_declaracao;
-            struct NoAST *inicializacao_expr; // Expressão de inicialização (pode ser NULL)
+            struct NoAST *inicializacao_expr;
         } decl_info;
 
-        char *func_name; // Para NODE_FUNCTION_CALL e NODE_FUNCTION_DEF
+        char *func_name;
+
+        // Para NODE_FIELD_ASSIGN e NODE_FIELD_ACCESS
+        struct
+        {
+            char campo_nome[32];
+        } field_info;
 
     } data;
 
-    struct NoAST *esquerda; // Uso genérico para primeiro filho (ex: condição do if, operando unário)
-    struct NoAST *direita;  // Uso genérico para segundo filho (ex: bloco then do if)
-    struct NoAST *centro;   // Novo para o bloco else do if (alternativa ao esq/dir genérico)
-    struct NoAST *proximo;  // Para listas de nós (statements, declarations, parameters, arguments)
+    struct NoAST *esquerda;
+    struct NoAST *direita;
+    struct NoAST *centro;
+    struct NoAST *proximo;
 
 } NoAST;
 
