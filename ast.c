@@ -290,72 +290,202 @@ void imprimirAST(NoAST *no) {
 
     switch (no->tipo_no) {
         case NODE_OPERATOR:
-            printf("(");
-            imprimirAST(no->esquerda);
-            printf(" %s ",
-                   (no->data.op_type == OP_ADD_TYPE) ? "+" :
-                   (no->data.op_type == OP_SUB_TYPE) ? "-" :
-                   (no->data.op_type == OP_MUL_TYPE) ? "*" :
-                   (no->data.op_type == OP_DIV_TYPE) ? "/" :
-                   (no->data.op_type == OP_ASSIGN_TYPE) ? "=" :
-                   (no->data.op_type == OP_EQ_TYPE) ? "==" :
-                   (no->data.op_type == OP_NE_TYPE) ? "!=" :
-                   (no->data.op_type == OP_LT_TYPE) ? "<" :
-                   (no->data.op_type == OP_LE_TYPE) ? "<=" :
-                   (no->data.op_type == OP_GT_TYPE) ? ">" :
-                   (no->data.op_type == OP_GE_TYPE) ? ">=" :
-                   (no->data.op_type == OP_AND_TYPE) ? "&&" :
-                   (no->data.op_type == OP_OR_TYPE) ? "||" :
-                   (no->data.op_type == OP_NOT_TYPE) ? "!" :
-                   (no->data.op_type == OP_INC_TYPE) ? "++" :
-                   (no->data.op_type == OP_DEC_TYPE) ? "--" :
-                   (no->data.op_type == OP_ADD_ASSIGN_TYPE) ? "+=" :
-                   (no->data.op_type == OP_SUB_ASSIGN_TYPE) ? "-=" :
-                   (no->data.op_type == OP_MUL_ASSIGN_TYPE) ? "*=" :
-                   (no->data.op_type == OP_DIV_ASSIGN_TYPE) ? "/=" :
-                   "[OP_UNKNOWN]"); // Um valor padrão para operadores não tratados
-            imprimirAST(no->direita);
-            printf(")");
-            break;
-        case NODE_LITERAL:
-            switch (no->tipo_dado) {
-                case TIPO_INT:    printf("%d", no->data.literal.val_int); break;
-                case TIPO_FLOAT:  printf("%f", no->data.literal.val_float); break;
-                case TIPO_DOUBLE: printf("%lf", no->data.literal.val_double); break;
-                case TIPO_CHAR:   printf("'%c'", no->data.literal.val_char); break;
-                case TIPO_STRING: printf("\"%s\"", no->data.literal.val_string); break;
-                default: printf("[LITERAL DESCONHECIDO]"); break;
+            if (no->data.op_type == OP_NOT_TYPE || no->data.op_type == OP_INC_TYPE || no->data.op_type == OP_DEC_TYPE) {
+                printf("(%s", 
+                    (no->data.op_type == OP_NOT_TYPE) ? "!" :
+                    (no->data.op_type == OP_INC_TYPE) ? "++" :
+                    (no->data.op_type == OP_DEC_TYPE) ? "--" : "?");
+                imprimirAST(no->esquerda);
+                printf(")");
+            } else {
+                printf("(");
+                imprimirAST(no->esquerda);
+                printf(" %s ",
+                       (no->data.op_type == OP_ADD_TYPE) ? "+" :
+                       (no->data.op_type == OP_SUB_TYPE) ? "-" :
+                       (no->data.op_type == OP_MUL_TYPE) ? "*" :
+                       (no->data.op_type == OP_DIV_TYPE) ? "/" :
+                       (no->data.op_type == OP_ASSIGN_TYPE) ? "=" :
+                       (no->data.op_type == OP_EQ_TYPE) ? "==" :
+                       (no->data.op_type == OP_NE_TYPE) ? "!=" :
+                       (no->data.op_type == OP_LT_TYPE) ? "<" :
+                       (no->data.op_type == OP_LE_TYPE) ? "<=" :
+                       (no->data.op_type == OP_GT_TYPE) ? ">" :
+                       (no->data.op_type == OP_GE_TYPE) ? ">=" :
+                       (no->data.op_type == OP_AND_TYPE) ? "&&" :
+                       (no->data.op_type == OP_OR_TYPE) ? "||" :
+                       (no->data.op_type == OP_ADD_ASSIGN_TYPE) ? "+=" :
+                       (no->data.op_type == OP_SUB_ASSIGN_TYPE) ? "-=" :
+                       (no->data.op_type == OP_MUL_ASSIGN_TYPE) ? "*=" :
+                       (no->data.op_type == OP_DIV_ASSIGN_TYPE) ? "/=" :
+                       "?");
+                imprimirAST(no->direita);
+                printf(")");
             }
             break;
+
+        case NODE_LITERAL:
+            switch (no->tipo_dado) {
+                case TIPO_INT:
+                    printf("%d", no->data.literal.val_int);
+                    break;
+                case TIPO_FLOAT:
+                    printf("%f", no->data.literal.val_float);
+                    break;
+                case TIPO_DOUBLE:
+                    printf("%lf", no->data.literal.val_double);
+                    break;
+                case TIPO_CHAR:
+                    printf("'%c'", no->data.literal.val_char);
+                    break;
+                case TIPO_STRING:
+                    printf("\"%s\"", no->data.literal.val_string);
+                    break;
+                default:
+                    printf("[LITERAL DESCONHECIDO]");
+                    break;
+            }
+            break;
+
         case NODE_IDENTIFIER:
             printf("%s", no->data.nome_id);
             break;
+
+        case NODE_DECLARATION:
+            printf("%s %s", 
+                (no->tipo_dado == TIPO_INT) ? "int" :
+                (no->tipo_dado == TIPO_FLOAT) ? "float" :
+                (no->tipo_dado == TIPO_DOUBLE) ? "double" :
+                (no->tipo_dado == TIPO_CHAR) ? "char" :
+                (no->tipo_dado == TIPO_STRING) ? "string" :
+                "tipo_desconhecido",
+                no->data.decl_info.nome_declaracao);
+            if (no->data.decl_info.inicializacao_expr) {
+                printf(" = ");
+                imprimirAST(no->data.decl_info.inicializacao_expr);
+            }
+            printf(";");
+            break;
+
+        case NODE_RETURN:
+            printf("return ");
+            imprimirAST(no->esquerda);
+            printf(";");
+            break;
+
+        case NODE_IF:
+            printf("if (");
+            imprimirAST(no->esquerda);
+            printf(") ");
+            imprimirAST(no->direita);
+            if (no->centro) {
+                printf(" else ");
+                imprimirAST(no->centro);
+            }
+            break;
+
+        case NODE_WHILE:
+            printf("while (");
+            imprimirAST(no->esquerda);
+            printf(") ");
+            imprimirAST(no->direita);
+            break;
+
+        case NODE_FOR:
+            printf("for (");
+            if (no->esquerda) imprimirAST(no->esquerda);
+            printf("; ");
+            if (no->direita) imprimirAST(no->direita);
+            printf("; ");
+            if (no->centro) imprimirAST(no->centro);
+            printf(") ");
+            if (no->proximo) imprimirAST(no->proximo);
+            break;
+
+        case NODE_COMPOUND_STMT:
+            printf("{\n");
+            imprimirAST(no->esquerda);
+            printf("}\n");
+            break;
+
+        case NODE_BREAK:
+            printf("break;");
+            break;
+
+        case NODE_CONTINUE:
+            printf("continue;");
+            break;
+
+        case NODE_FUNCTION_CALL:
+            printf("%s(", no->data.func_name);
+            imprimirAST(no->esquerda);
+            printf(")");
+            break;
+
+        case NODE_SWITCH:
+            printf("switch (");
+            imprimirAST(no->esquerda);
+            printf(") ");
+            imprimirAST(no->direita);
+            break;
+
+        case NODE_SWITCH_BODY:
+            imprimirAST(no->esquerda); 
+            if (no->direita) {         
+                imprimirAST(no->direita);
+            }
+            break;
+
+        case NODE_CASE:
+            printf("case ");
+            imprimirAST(no->esquerda);
+            printf(": ");
+            imprimirAST(no->direita);
+            break;
+
+        case NODE_DEFAULT:
+            printf("default: ");
+            imprimirAST(no->esquerda);
+            break;
+
         case NODE_ERROR:
             printf("[NÓ DE ERRO]");
             break;
+
         default:
             printf("[TIPO DE NÓ DESCONHECIDO]");
             break;
     }
 }
 
+
 void liberarAST(NoAST *no) {
-    if (no == NULL) {
-        return;
+    if (no == NULL) return;
+
+    switch (no->tipo_no) {
+        case NODE_DECLARATION:
+            free(no->data.decl_info.nome_declaracao);
+            liberarAST(no->data.decl_info.inicializacao_expr);
+            break;
+
+        case NODE_FUNCTION_CALL:
+            free(no->data.func_name);
+            break;
+
+        case NODE_LITERAL:
+            if (no->tipo_dado == TIPO_STRING && no->data.literal.val_string != NULL) {
+                free(no->data.literal.val_string);
+            }
+            break;
+
+        default:
+            break;
     }
 
     liberarAST(no->esquerda);
     liberarAST(no->direita);
     liberarAST(no->centro);
     liberarAST(no->proximo);
-
-    if (no->tipo_no == NODE_LITERAL && no->tipo_dado == TIPO_STRING && no->data.literal.val_string) {
-        free(no->data.literal.val_string);
-    } else if (no->tipo_no == NODE_DECLARATION && no->data.decl_info.nome_declaracao) {
-        free(no->data.decl_info.nome_declaracao);
-    } else if (no->tipo_no == NODE_FUNCTION_CALL && no->data.func_name) {
-        free(no->data.func_name);
-    }
 
     free(no);
 }
