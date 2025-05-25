@@ -322,6 +322,36 @@ NoAST *criarNoErro()
     return no;
 }
 
+NoAST *criarNoAtribuicaoCampo(NoAST *struct_expr, char *campo, NoAST *valor)
+{
+    NoAST *no = alocarNoAST(NODE_FIELD_ASSIGN);
+    no->esquerda = struct_expr; // expressão da struct (ex: p1)
+    no->direita = valor;        // valor a ser atribuído (ex: 10)
+    no->tipo_dado = (valor) ? valor->tipo_dado : TIPO_ERRO;
+    no->data.nome_id[0] = '\0';
+    if (campo)
+    {
+        strncpy(no->data.nome_id, campo, sizeof(no->data.nome_id) - 1);
+        no->data.nome_id[sizeof(no->data.nome_id) - 1] = '\0';
+    }
+    return no;
+}
+
+NoAST *criarNoAcessoCampo(NoAST *struct_expr, char *campo)
+{
+    NoAST *no = alocarNoAST(NODE_FIELD_ACCESS);
+    no->esquerda = struct_expr; // expressão da struct (ex: p1)
+    no->direita = NULL;
+    no->tipo_dado = TIPO_ERRO; // O tipo real pode ser resolvido na análise semântica
+    no->data.nome_id[0] = '\0';
+    if (campo)
+    {
+        strncpy(no->data.nome_id, campo, sizeof(no->data.nome_id) - 1);
+        no->data.nome_id[sizeof(no->data.nome_id) - 1] = '\0';
+    }
+    return no;
+}
+
 void imprimirAST(NoAST *no)
 {
     if (no == NULL)

@@ -39,7 +39,9 @@ typedef enum
     NODE_PROGRAM,       // Nó raiz que pode conter uma lista de funções/globais
     NODE_FUNCTION_DEF,  // Definição de função
     NODE_PARAM_LIST,    // Lista de parâmetros de função
-    NODE_ARG_LIST       // Lista de argumentos em chamadas de função
+    NODE_ARG_LIST,      // Lista de argumentos em chamadas de função
+    NODE_FIELD_ASSIGN,  // Para atribuição a campo de struct (ex: p.x = 1)
+    NODE_FIELD_ACCESS,  // Para acesso a campo de struct (ex: p.x)
 } NodeType;
 
 // Enumeração para os operadores (como definido anteriormente)
@@ -132,6 +134,8 @@ NoAST *criarNoCompoundStmt(NoAST *lista_statements); // Para blocos {}
 NoAST *criarNoBreak();
 NoAST *criarNoContinue();
 NoAST *criarNoChamadaFuncao(char *nome_func, NoAST *args_list);
+NoAST *criarNoAtribuicaoCampo(NoAST *struct_expr, char *campo, NoAST *valor);
+NoAST *criarNoAcessoCampo(NoAST *struct_expr, char *campo);
 
 // Funções de manipulação da AST
 void imprimirAST(NoAST *no);
