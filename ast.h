@@ -4,7 +4,8 @@
 #define AST_H
 
 // Enumerações para tipos de dados
-typedef enum {
+typedef enum
+{
     TIPO_INT,
     TIPO_FLOAT,
     TIPO_DOUBLE,
@@ -15,51 +16,74 @@ typedef enum {
 } Tipo;
 
 // Enumeração para o tipo de nó na AST
-typedef enum {
+typedef enum
+{
     NODE_OPERATOR,
     NODE_LITERAL,
     NODE_IDENTIFIER,
     NODE_ERROR,
-    NODE_DECLARATION,    // Para declarações de variáveis
-    NODE_RETURN,         // Para o comando 'return'
-    NODE_IF,             // Para o comando 'if'
-    NODE_WHILE,          // Para o comando 'while'
-    NODE_FOR,            // Para o comando 'for'
-    NODE_SWITCH,         // Para o comando 'switch' (o nó principal)
-    NODE_SWITCH_BODY,    // O corpo interno do switch (pode ser o que $5 retorna)
-    NODE_CASE,           // Para cada 'case' individual
-    NODE_DEFAULT,        // Para o 'default' do switch
-    NODE_COMPOUND_STMT,  // Para blocos de código ({ ... })
-    NODE_BREAK,          // Para o comando 'break'
-    NODE_CONTINUE,       // Para o comando 'continue'
-    NODE_FUNCTION_CALL,  // Para chamadas de função
-    NODE_UNARY_OP,       // Para operadores unários (++, --, !)
-    NODE_PROGRAM,        // Nó raiz que pode conter uma lista de funções/globais
-    NODE_FUNCTION_DEF,   // Definição de função
-    NODE_PARAM_LIST,     // Lista de parâmetros de função
-    NODE_ARG_LIST        // Lista de argumentos em chamadas de função
+    NODE_DECLARATION,   // Para declarações de variáveis
+    NODE_RETURN,        // Para o comando 'return'
+    NODE_IF,            // Para o comando 'if'
+    NODE_WHILE,         // Para o comando 'while'
+    NODE_FOR,           // Para o comando 'for'
+    NODE_SWITCH,        // Para o comando 'switch' (o nó principal)
+    NODE_SWITCH_BODY,   // O corpo interno do switch (pode ser o que $5 retorna)
+    NODE_CASE,          // Para cada 'case' individual
+    NODE_DEFAULT,       // Para o 'default' do switch
+    NODE_COMPOUND_STMT, // Para blocos de código ({ ... })
+    NODE_BREAK,         // Para o comando 'break'
+    NODE_CONTINUE,      // Para o comando 'continue'
+    NODE_FUNCTION_CALL, // Para chamadas de função
+    NODE_UNARY_OP,      // Para operadores unários (++, --, !)
+    NODE_PROGRAM,       // Nó raiz que pode conter uma lista de funções/globais
+    NODE_FUNCTION_DEF,  // Definição de função
+    NODE_PARAM_LIST,    // Lista de parâmetros de função
+    NODE_ARG_LIST,      // Lista de argumentos em chamadas de função
+    NODE_FIELD_ASSIGN,  // Para atribuição a campo de struct (ex: p.x = 1)
+    NODE_FIELD_ACCESS,  // Para acesso a campo de struct (ex: p.x)
 } NodeType;
 
 // Enumeração para os operadores (como definido anteriormente)
-typedef enum {
-    OP_ADD_TYPE, OP_SUB_TYPE, OP_MUL_TYPE, OP_DIV_TYPE, OP_MOD_TYPE,
-    OP_ASSIGN_TYPE, OP_ADD_ASSIGN_TYPE, OP_SUB_ASSIGN_TYPE, OP_MUL_ASSIGN_TYPE, OP_DIV_ASSIGN_TYPE, OP_MOD_ASSIGN_TYPE,
-    OP_EQ_TYPE, OP_NE_TYPE, OP_LT_TYPE, OP_LE_TYPE, OP_GT_TYPE, OP_GE_TYPE,
-    OP_AND_TYPE, OP_OR_TYPE, OP_NOT_TYPE,
-    OP_INC_TYPE, OP_DEC_TYPE,
+typedef enum
+{
+    OP_ADD_TYPE,
+    OP_SUB_TYPE,
+    OP_MUL_TYPE,
+    OP_DIV_TYPE,
+    OP_MOD_TYPE,
+    OP_ASSIGN_TYPE,
+    OP_ADD_ASSIGN_TYPE,
+    OP_SUB_ASSIGN_TYPE,
+    OP_MUL_ASSIGN_TYPE,
+    OP_DIV_ASSIGN_TYPE,
+    OP_MOD_ASSIGN_TYPE,
+    OP_EQ_TYPE,
+    OP_NE_TYPE,
+    OP_LT_TYPE,
+    OP_LE_TYPE,
+    OP_GT_TYPE,
+    OP_GE_TYPE,
+    OP_AND_TYPE,
+    OP_OR_TYPE,
+    OP_NOT_TYPE,
+    OP_INC_TYPE,
+    OP_DEC_TYPE,
     OP_UNKNOWN_TYPE
 } OperatorType;
 
 // Estrutura do nó da Árvore Sintática Abstrata (AST)
-typedef struct NoAST {
-    NodeType tipo_no;     // O tipo de nó da AST (operador, literal, identificador, etc.)
-    Tipo tipo_dado;       // O tipo de dado subjacente (TIPO_INT, TIPO_CHAR, etc.)
-    int linha;            // Número da linha no código fonte
+typedef struct NoAST
+{
+    NodeType tipo_no;
+    Tipo tipo_dado;
+    int linha;
 
-    union {
-        OperatorType op_type; // Para NODE_OPERATOR e NODE_UNARY_OP
-
-        struct { // Para NODE_LITERAL
+    union
+    {
+        OperatorType op_type;
+        struct
+        {
             int val_int;
             float val_float;
             double val_double;
@@ -67,21 +91,28 @@ typedef struct NoAST {
             char *val_string;
         } literal;
 
-        char nome_id[32]; // Para NODE_IDENTIFIER
+        char nome_id[32];
 
-        struct { // Para NODE_DECLARATION
+        struct
+        {
             char *nome_declaracao;
-            struct NoAST *inicializacao_expr; // Expressão de inicialização (pode ser NULL)
+            struct NoAST *inicializacao_expr;
         } decl_info;
 
-        char *func_name; // Para NODE_FUNCTION_CALL e NODE_FUNCTION_DEF
+        char *func_name;
+
+        // Para NODE_FIELD_ASSIGN e NODE_FIELD_ACCESS
+        struct
+        {
+            char campo_nome[32];
+        } field_info;
 
     } data;
 
-    struct NoAST *esquerda;  // Uso genérico para primeiro filho (ex: condição do if, operando unário)
-    struct NoAST *direita;   // Uso genérico para segundo filho (ex: bloco then do if)
-    struct NoAST *centro;    // Novo para o bloco else do if (alternativa ao esq/dir genérico)
-    struct NoAST *proximo;   // Para listas de nós (statements, declarations, parameters, arguments)
+    struct NoAST *esquerda;
+    struct NoAST *direita;
+    struct NoAST *centro;
+    struct NoAST *proximo;
 
 } NoAST;
 
@@ -108,6 +139,8 @@ NoAST *criarNoCompoundStmt(NoAST *lista_statements); // Para blocos {}
 NoAST *criarNoBreak();
 NoAST *criarNoContinue();
 NoAST *criarNoChamadaFuncao(char *nome_func, NoAST *args_list);
+NoAST *criarNoAtribuicaoCampo(NoAST *struct_expr, char *campo, NoAST *valor);
+NoAST *criarNoAcessoCampo(NoAST *struct_expr, char *campo);
 
 // Funções de manipulação da AST
 void imprimirAST(NoAST *no);

@@ -38,17 +38,17 @@ Tipo current_decl_type;
 %token KW_AUTO KW_BREAK KW_CASE KW_CHAR KW_CONST
 %token KW_CONTINUE KW_DEFAULT KW_DO KW_ELSE KW_ENUM
 %token KW_EXTERN KW_FOR KW_IF KW_INT KW_LONG
-%token KW_RETURN KW_SHORT KW_SIGNED KW_STATIC KW_SWITCH
+%token KW_RETURN KW_SHORT KW_SIGNED KW_STATIC KW_SWITCH KW_STRUCT
 %token KW_TYPEDEF KW_UNSIGNED KW_VOID KW_VOLATILE KW_WHILE
 
 /* Types */
 %type <tipo_decl> type_specifier
 %type <no_ast> stmt compound_stmt stmt_list var_decl declarator_list declarator expr args arg_list expr_list
-%type <no_ast> for_init for_cond for_iter switch_body case_list case_stmt default_case const_expr // Os não-terminais que você usa nas regras 'for' e 'switch'
+%type <no_ast> for_init for_cond for_iter switch_body case_list case_stmt default_case const_expr
 %token TYPE_INT TYPE_CHAR TYPE_FLOAT TYPE_DOUBLE TYPE_VOID
 
 /* Operators */
-%token OP_ADD OP_SUB OP_MUL OP_DIV OP_ASSIGN
+%token OP_ADD OP_SUB OP_MUL OP_DIV OP_ASSIGN OP_MOD
 %token OP_EQ OP_NE OP_LT OP_LE OP_GT OP_GE
 %token OP_AND OP_OR OP_NOT OP_INC OP_DEC
 %token OP_ADD_ASSIGN OP_SUB_ASSIGN OP_MUL_ASSIGN OP_DIV_ASSIGN
@@ -58,7 +58,7 @@ Tipo current_decl_type;
 %token SEMICOLON COMMA DOT COLON OP_TERNARY
 
 /* Precedence */
-%nonassoc IF_WITHOUT_ELSE // Token fictício para precedência
+%nonassoc IF_WITHOUT_ELSE
 %nonassoc KW_ELSE
 %right OP_ASSIGN OP_ADD_ASSIGN OP_SUB_ASSIGN OP_MUL_ASSIGN OP_DIV_ASSIGN
 %left OP_OR
@@ -66,14 +66,40 @@ Tipo current_decl_type;
 %left OP_EQ OP_NE
 %left OP_LT OP_LE OP_GT OP_GE
 %left OP_ADD OP_SUB
-%left OP_MUL OP_DIV
+%left OP_MUL OP_DIV OP_MOD
 %right OP_NOT OP_INC OP_DEC
 %left POSTFIX_LEVEL
 
 %%
 
+
 program:
-    preprocessor_list function_list
+    toplevel_list
+;
+
+toplevel_list:
+      /* empty */
+    | toplevel_list toplevel
+;
+
+toplevel:
+      preprocessor
+    | function
+    | var_decl SEMICOLON
+    | struct_decl
+;
+
+struct_decl:
+    KW_STRUCT IDENTIFIER LBRACE struct_field_list RBRACE SEMICOLON
+;
+
+struct_field_list:
+      struct_field
+    | struct_field_list struct_field
+;
+
+struct_field:
+    type_specifier declarator_list SEMICOLON
 ;
 
 preprocessor_list:
@@ -124,7 +150,6 @@ compound_stmt:
 stmt_list:
     /* vazio */ { $$ = NULL; }
     | stmt_list stmt {
-        // Encadeia statements
         NoAST *head = $1;
         if (head == NULL) {
             $$ = $2;
@@ -173,13 +198,12 @@ for_iter:
 
 switch_body:
     LBRACE case_list default_case RBRACE {
-        // Agora, o $2 é a cabeça da lista de cases, e o $3 é o nó do default
         $$ = criarNoSwitchBody($2, $3);
     }
 ;
 
 case_list:
-    /* vazio */ { $$ = NULL; } // Pode ter um switch sem cases (apenas default)
+    /* vazio */ { $$ = NULL; }
     | case_list case_stmt {
         NoAST *head = $1;
         if (head == NULL) {
@@ -197,14 +221,14 @@ case_list:
 
 case_stmt:
     KW_CASE const_expr COLON stmt_list {
-        $$ = criarNoCase($2, $4); // $2 é a expressão do case, $4 é a lista de statements
+        $$ = criarNoCase($2, $4);
     }
 ;
 
 default_case:
     /* vazio */ { $$ = NULL; }
     | KW_DEFAULT COLON stmt_list {
-        $$ = criarNoDefault($3); // $3 é a lista de statements do default
+        $$ = criarNoDefault($3);
     }
 ;
 
@@ -222,13 +246,11 @@ var_decl:
 
 declarator_list:
     declarator {
-        $$ = $1; // O primeiro declarador é a cabeça da lista
+        $$ = $1;
     }
     | declarator_list COMMA declarator {
-        // Encadeia o novo declarador ($3) ao final da lista ($1)
-        // Percorre a lista para encontrar o último nó e anexa o novo
         NoAST *head = $1;
-        if (head == NULL) { // Se a lista anterior ($1) for nula por algum erro
+        if (head == NULL) {
             $$ = $3;
         } else {
             NoAST *current = head;
@@ -236,13 +258,13 @@ declarator_list:
                 current = current->proximo;
             }
             current->proximo = $3;
-            $$ = head; // Retorna a cabeça original da lista
+            $$ = head;
         }
     }
 ;
 
 declarator:
-    IDENTIFIER { // Ex: int a;
+    IDENTIFIER {
         Simbolo *s = buscarSimbolo($1);
         if (s) {
             yyerror("Redeclaração de variável.");
@@ -260,7 +282,7 @@ declarator:
             $$ = criarNoDeclaracaoVar($1, current_decl_type, NULL);
         }
     }
-    | IDENTIFIER OP_ASSIGN expr { // Ex: int b = 10;
+    | IDENTIFIER OP_ASSIGN expr {
         Simbolo *s = buscarSimbolo($1);
         if (s) {
             yyerror("Redeclaração de variável.");
@@ -278,7 +300,6 @@ declarator:
             }
             inserirSimbolo($1, current_decl_type, VARIAVEL, tamanho, 0, yylineno, 0, ESCOPO_LOCAL);
 
-            // Proteção contra $3 nulo ou erro
             if ($3 == NULL || $3->tipo_dado == TIPO_ERRO || !tiposCompativeis(current_decl_type, $3->tipo_dado)) {
                 fprintf(stderr, "Erro de tipo: Atribuição de tipo incompatível para '%s' (tipo %d) com expressão (tipo %d) na linha %d.\n",
                         $1, current_decl_type, ($3 ? $3->tipo_dado : TIPO_ERRO), yylineno);
@@ -296,14 +317,13 @@ declarator:
 ;
 
 args:
-    /* vazio */ { $$ = NULL; } // Chamada de função sem argumentos
+    /* vazio */ { $$ = NULL; }
     | arg_list { $$ = $1; }
 ;
 
 arg_list:
     expr { $$ = $1; }
     | arg_list COMMA expr {
-        // Encadeia argumentos
         NoAST *head = $1;
         if (head == NULL) {
             $$ = $3;
@@ -351,7 +371,7 @@ expr:
             s->linha_ultimo_uso = yylineno;
         }
     }
-    | IDENTIFIER LPAREN args RPAREN { // Função é $1, argumentos são $3
+    | IDENTIFIER LPAREN args RPAREN {
         Simbolo *s = buscarSimbolo($1);
         if (!s || s->categoria != FUNCAO) {
             yyerror("Chamada de função para identificador não declarado ou não é função.");
@@ -360,8 +380,6 @@ expr:
             $$ = criarNoChamadaFuncao($1, $3);
         }
     }
-
-    // Atribuição (=)
     | IDENTIFIER OP_ASSIGN expr {
         Simbolo *s = buscarSimbolo($1);
         if (!s) {
@@ -378,8 +396,12 @@ expr:
             }
         }
     }
-
-    // Pós-incremento/decremento
+    | expr DOT IDENTIFIER {
+        $$ = criarNoAcessoCampo($1, $3);
+    }
+    | expr DOT IDENTIFIER OP_ASSIGN expr {
+        $$ = criarNoAtribuicaoCampo($1, $3, $5);
+    }
     | IDENTIFIER OP_INC %prec POSTFIX_LEVEL {
         Simbolo *s = buscarSimbolo($1);
         if (!s) { yyerror("Identificador não declarado para incremento."); $$ = criarNoErro(); }
@@ -390,8 +412,6 @@ expr:
         if (!s) { yyerror("Identificador não declarado para decremento."); $$ = criarNoErro(); }
         else { $$ = criarNoUnario(OP_DEC_TYPE, criarNoId($1, s->tipo)); }
     }
-
-    // Pré-incremento/decremento
     | OP_INC IDENTIFIER {
         Simbolo *s = buscarSimbolo($2);
         if (!s) { yyerror("Identificador não declarado para incremento."); $$ = criarNoErro(); }
@@ -402,9 +422,7 @@ expr:
         if (!s) { yyerror("Identificador não declarado para decremento."); $$ = criarNoErro(); }
         else { $$ = criarNoUnario(OP_DEC_TYPE, criarNoId($2, s->tipo)); }
     }
-
-    // Atribuições compostas (+=, -=, *=, /=, etc.)
-    | IDENTIFIER OP_ADD_ASSIGN expr { // a += b vira a = a + b
+    | IDENTIFIER OP_ADD_ASSIGN expr {
         Simbolo *s = buscarSimbolo($1);
         if (!s) { yyerror("Identificador não declarado para atribuição composta."); $$ = criarNoErro(); }
         else if ($3 == NULL || $3->tipo_dado == TIPO_ERRO || !tiposCompativeis(s->tipo, $3->tipo_dado)) {
@@ -416,7 +434,7 @@ expr:
             $$ = criarNoOp(OP_ASSIGN_TYPE, id_node, soma_node);
         }
     }
-    | IDENTIFIER OP_SUB_ASSIGN expr { // a -= b vira a = a - b
+    | IDENTIFIER OP_SUB_ASSIGN expr {
         Simbolo *s = buscarSimbolo($1);
         if (!s) { yyerror("Identificador não declarado para atribuição composta."); $$ = criarNoErro(); }
         else if ($3 == NULL || $3->tipo_dado == TIPO_ERRO || !tiposCompativeis(s->tipo, $3->tipo_dado)) {
@@ -428,7 +446,7 @@ expr:
             $$ = criarNoOp(OP_ASSIGN_TYPE, id_node, sub_node);
         }
     }
-    | IDENTIFIER OP_MUL_ASSIGN expr { // a *= b vira a = a * b
+    | IDENTIFIER OP_MUL_ASSIGN expr {
         Simbolo *s = buscarSimbolo($1);
         if (!s) { yyerror("Identificador não declarado para atribuição composta."); $$ = criarNoErro(); }
         else if ($3 == NULL || $3->tipo_dado == TIPO_ERRO || !tiposCompativeis(s->tipo, $3->tipo_dado)) {
@@ -440,7 +458,7 @@ expr:
             $$ = criarNoOp(OP_ASSIGN_TYPE, id_node, mul_node);
         }
     }
-    | IDENTIFIER OP_DIV_ASSIGN expr { // a /= b vira a = a / b
+    | IDENTIFIER OP_DIV_ASSIGN expr {
         Simbolo *s = buscarSimbolo($1);
         if (!s) { yyerror("Identificador não declarado para atribuição composta."); $$ = criarNoErro(); }
         else if ($3 == NULL || $3->tipo_dado == TIPO_ERRO || !tiposCompativeis(s->tipo, $3->tipo_dado)) {
@@ -452,26 +470,20 @@ expr:
             $$ = criarNoOp(OP_ASSIGN_TYPE, id_node, div_node);
         }
     }
-
-    // Operações binárias
     | expr OP_ADD expr { $$ = criarNoOp(OP_ADD_TYPE, $1, $3); }
     | expr OP_SUB expr { $$ = criarNoOp(OP_SUB_TYPE, $1, $3); }
     | expr OP_MUL expr { $$ = criarNoOp(OP_MUL_TYPE, $1, $3); }
     | expr OP_DIV expr { $$ = criarNoOp(OP_DIV_TYPE, $1, $3); }
-
-    // Operadores de Comparação
     | expr OP_EQ expr { $$ = criarNoOp(OP_EQ_TYPE, $1, $3); }
     | expr OP_NE expr { $$ = criarNoOp(OP_NE_TYPE, $1, $3); }
     | expr OP_LT expr { $$ = criarNoOp(OP_LT_TYPE, $1, $3); }
     | expr OP_LE expr { $$ = criarNoOp(OP_LE_TYPE, $1, $3); }
     | expr OP_GT expr { $$ = criarNoOp(OP_GT_TYPE, $1, $3); }
     | expr OP_GE expr { $$ = criarNoOp(OP_GE_TYPE, $1, $3); }
-
-    // Operadores Lógicos
     | expr OP_AND expr { $$ = criarNoOp(OP_AND_TYPE, $1, $3); }
     | expr OP_OR expr { $$ = criarNoOp(OP_OR_TYPE, $1, $3); }
-    | OP_NOT expr { $$ = criarNoUnario(OP_NOT_TYPE, $2); } // Negação unária
-    | LPAREN expr RPAREN                    {$$ = $2;} // Propaga o nó da expressão dentro dos parênteses
+    | OP_NOT expr { $$ = criarNoUnario(OP_NOT_TYPE, $2); }
+    | LPAREN expr RPAREN { $$ = $2; }
 ;
 
 %%
@@ -481,14 +493,8 @@ void yyerror(const char *s) {
 }
 
 void inicializarTabelaSimbolosGlobais() {
-    // Insere printf na tabela de símbolos.
-    // O tipo de retorno de printf é int.
-    // A categoria é FUNCAO.
-    // O num_parametros pode ser -1 ou um valor especial para indicar função variádica.
-    inserirSimbolo("printf", TIPO_INT, FUNCAO, 0, -1, 0, 0, ESCOPO_GLOBAL); // Tamanho 0, endereço 0, linha 0 para globais
-    // Adicione outras funções da biblioteca padrão que você precisa
+    inserirSimbolo("printf", TIPO_INT, FUNCAO, 0, -1, 0, 0, ESCOPO_GLOBAL);
     inserirSimbolo("scanf", TIPO_INT, FUNCAO, 0, -1, 0, 0, ESCOPO_GLOBAL);
-    // ...
 }
 
 int main(int argc, char *argv[]) {

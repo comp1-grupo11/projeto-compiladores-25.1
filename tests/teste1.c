@@ -1,34 +1,57 @@
 #include <stdio.h>
-#include<stdlib.h>
-#include    <string.h>
+
+#define MAX_SIZE 100
+
+struct Pessoa
+{
+    int id;
+    char nome[50];
+    float altura;
+};
+
+int calcular_idade(int ano_nascimento)
+{
+    const int ano_atual = 2024;
+    return ano_atual - ano_nascimento;
+}
 
 int main()
 {
-    printf("Hello World!\n");
-    int i = 0, a = 0;
-    i += 1;
-    i++;
-    i--;
-    i -= 1;
-    i *= 1;
-    i /= 1;
-    a += ++i;
-    // For loop
-    for (int i = 0, j = 1, k = 0; (i < 10 && k <= 0) || !(j < i); i = i + 1, j++, k--)
+    int numeros[MAX_SIZE] = {1, 2, 3, 4, 5};
+    float valores[] = {1.5, 2.7, 3.14};
+    char letra = 'A';
+    char mensagem[] = "Teste de compilacao";
+
+    struct Pessoa usuario = {
+        .id = 1,
+        .nome = "Joao",
+        .altura = 1.75};
+
+    for (int i = 0; i < 5; i++)
     {
-        // Switch statement
-        switch (i)
+        if (numeros[i] % 2 == 0)
         {
-        case 0:
-            printf("Zero");
-            break;
-        case 5:
-            i += ++j;
-            printf("Five");
-            break;
-        default:
-            printf("Other");
+            printf("Par: %d\n", numeros[i]);
+        }
+        else
+        {
+            printf("Impar: %d\n", numeros[i]); // Comentário teste
         }
     }
+
+    int idade = calcular_idade(1990);
+    switch (idade)
+    {
+    case 34: /*Comentário teste 2*/
+        printf("Idade correta!\n");
+        break;
+    default:
+        printf("Idade calculada: %d\n", idade);
+    }
+
+    int x = 10;
+    x += 5;
+    x--;
+
     return 0;
 }
