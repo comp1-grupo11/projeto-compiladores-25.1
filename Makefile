@@ -1,6 +1,6 @@
 # Compilador e flags
 CC = gcc
-CFLAGS = -Wall -Wextra -g
+CFLAGS = -Wall -Wextra -g -Wno-unused-function
 FLEX = flex
 BISON = bison
 
@@ -8,11 +8,15 @@ BISON = bison
 TARGET = parser
 
 # Arquivos fonte
-SRC = parser.tab.c lex.yy.c ast.c
+SRC = parser.tab.c lex.yy.c ast.c tabela.c
 OBJ = $(SRC:.c=.o)
 
-# Diretório de saída (opcional)
+# Diretórios
 BUILD_DIR = build
+TEST_DIR = tests
+
+# Arquivos de teste
+TEST_FILES = $(wildcard $(TEST_DIR)/*.c)
 
 .PHONY: all clean test
 
@@ -42,13 +46,14 @@ clean:
 
 test: $(TARGET)
 	@echo "\n🔍 Iniciando testes..."
-	@for test in teste1.c teste2.c teste3.c; do \
+	@for test in $(TEST_FILES); do \
 		echo "\n🔬 Testando $$test:"; \
 		./$(TARGET) $$test || echo "❌ Falha no teste $$test"; \
 	done
 	@echo "\n🏁 Todos os testes concluídos\n"
 
 # Dependências especiais
-lex.yy.o: lex.yy.c parser.tab.h ast.h
-parser.tab.o: parser.tab.c parser.tab.h ast.h
+lex.yy.o: lex.yy.c parser.tab.h
+parser.tab.o: parser.tab.c parser.tab.h
 ast.o: ast.c ast.h
+tabela.o: tabela.c tabela.h
