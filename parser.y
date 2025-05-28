@@ -13,6 +13,7 @@ void yyerror(const char *s);
 
 %}
 
+
 %union {
     char* str_val;
     int int_val;
@@ -46,14 +47,17 @@ void yyerror(const char *s);
 %token SEMICOLON COMMA DOT COLON OP_TERNARY
 
 /* Precedence */
+%nonassoc IF_WITHOUT_ELSE // Token fictício para precedência
+%nonassoc KW_ELSE
+%right OP_ASSIGN OP_ADD_ASSIGN OP_SUB_ASSIGN OP_MUL_ASSIGN OP_DIV_ASSIGN
 %left OP_OR
 %left OP_AND
 %left OP_EQ OP_NE
 %left OP_LT OP_LE OP_GT OP_GE
 %left OP_ADD OP_SUB
 %left OP_MUL OP_DIV
-%right OP_NOT
-%right OP_ASSIGN
+%right OP_NOT OP_INC OP_DEC
+%left POSTFIX_LEVEL
 
 %type <code> program function function_list params param_list param_decl compound_stmt stmt_list stmt expr type_specifier preprocessor preprocessor_list
 %type <code> for_init for_cond for_iter
@@ -150,7 +154,7 @@ stmt:
     | KW_RETURN expr SEMICOLON {
         asprintf(&$$, "return %s;", $2);
     }
-    | KW_IF LPAREN expr RPAREN stmt {
+    | KW_IF LPAREN expr RPAREN stmt %prec IF_WITHOUT_ELSE {
         asprintf(&$$, "if (%s) %s", $3, $5);
     }
     | KW_IF LPAREN expr RPAREN stmt KW_ELSE stmt {
@@ -180,7 +184,7 @@ stmt:
     | type_specifier IDENTIFIER OP_ASSIGN expr {
         asprintf(&$$, "let %s: %s = %s;", $2, $1, $4);
     }
-;
+    
 
 for_init:
     /* empty */ { $$ = strdup(""); }
@@ -233,8 +237,17 @@ const_expr:
 ;
 
 var_decl:
-    type_specifier IDENTIFIER
-    | type_specifier IDENTIFIER OP_ASSIGN expr
+    type_specifier declarator_list
+;
+
+declarator_list:
+    declarator
+    | declarator_list COMMA declarator
+;
+
+declarator:
+    IDENTIFIER
+    | IDENTIFIER OP_ASSIGN expr
 ;
 
 args:
@@ -271,10 +284,10 @@ expr:
     | IDENTIFIER OP_ASSIGN expr {
         asprintf(&$$, "%s = %s", $1, $3);
     }
-    | IDENTIFIER OP_INC {
+    | IDENTIFIER OP_INC %prec POSTFIX_LEVEL {
         asprintf(&$$, "%s++", $1);
     }
-    | IDENTIFIER OP_DEC {
+    | IDENTIFIER OP_DEC %prec POSTFIX_LEVEL {
         asprintf(&$$, "%s--", $1);
     }
     | IDENTIFIER OP_ADD_ASSIGN expr {
@@ -328,14 +341,39 @@ expr:
     | expr OP_TERNARY expr COLON expr {
         asprintf(&$$, "(%s ? %s : %s)", $1, $3, $5);
     }
-;
+    | OP_INC IDENTIFIER {
+        asprintf(&$$, "++%s", $2);
+    }
+    | OP_DEC IDENTIFIER {
+        asprintf(&$$, "--%s", $2);
+    }
+    | IDENTIFIER OP_ADD_ASSIGN expr {
+        asprintf(&$$, "%s += %s", $1, $3);
+    }
+    | IDENTIFIER OP_SUB_ASSIGN expr {
+        asprintf(&$$, "%s -= %s", $1, $3);
+    }
+    | IDENTIFIER OP_MUL_ASSIGN expr {
+        asprintf(&$$, "%s *= %s", $1, $3);
+    }
+    | IDENTIFIER OP_DIV_ASSIGN expr {
+        asprintf(&$$, "%s /= %s", $1, $3);
+    }
+    | expr OP_AND expr {
+        asprintf(&$$, "(%s && %s)", $1, $3);
+    }
+    | expr OP_OR expr {
+        asprintf(&$$, "(%s || %s)", $1, $3);
+    }
+    | OP_NOT expr {
+        asprintf(&$$, "!(%s)", $2);
+    }
+   ;
 
 %%
 
 void yyerror(const char *s) {
-    fprintf(stderr, "Erro sintático linha %d: %s\nToken: '%s'\n", 
-            yylineno, s, yytext);
-    exit(1);
+    fprintf(stderr, "Erro sintático linha %d: %s\n", yylineno, s);
 }
 
 int main(int argc, char *argv[]) {
