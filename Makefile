@@ -8,7 +8,7 @@ BISON = bison
 TARGET = parser
 
 # Arquivos fonte
-SRC = parser.tab.c lex.yy.c ast.c tabela.c
+SRC = parser.tab.c lex.yy.c ast.c tabela.c gerador.c
 OBJ = $(SRC:.c=.o)
 
 # Diretórios
@@ -52,8 +52,14 @@ test: $(TARGET)
 	done
 	@echo "\n🏁 Todos os testes concluídos\n"
 
+ir: $(TARGET)
+	@echo "\n🚧 Gerando código intermediário..."
+	./$(TARGET) > output.ir
+	@echo "\n📝 Código intermediário gerado em \033[1;36moutput.ir\033[0m\n"
+
 # Dependências especiais
 lex.yy.o: lex.yy.c parser.tab.h
 parser.tab.o: parser.tab.c parser.tab.h
 ast.o: ast.c ast.h
 tabela.o: tabela.c tabela.h
+gerador.o: gerador.c ast.h
