@@ -18,7 +18,7 @@ TEST_DIR = tests
 # Arquivos de teste
 TEST_FILES = $(wildcard $(TEST_DIR)/*.c)
 
-.PHONY: all clean test
+.PHONY: all clear test
 
 all: $(TARGET)
 
@@ -39,7 +39,7 @@ lex.yy.c: lexico.l parser.tab.h
 	@echo "🔨 Compilando $<"
 	$(CC) $(CFLAGS) -c $< -o $@
 
-clean:
+clear:
 	@echo "\n🧹 Limpando arquivos gerados..."
 	rm -f $(TARGET) *.o *.output
 	rm -f parser.tab.* lex.yy.c

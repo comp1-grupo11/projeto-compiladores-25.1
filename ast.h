@@ -12,7 +12,8 @@ typedef enum
     TIPO_CHAR,
     TIPO_STRING,
     TIPO_VOID,
-    TIPO_ERRO // Para representar nós que resultam de erros semânticos/sintáticos
+    TIPO_OBJETO, // Adicionado para suporte a structs
+    TIPO_ERRO    // Para representar nós que resultam de erros semânticos/sintáticos
 } Tipo;
 
 // Enumeração para o tipo de nó na AST
@@ -41,10 +42,10 @@ typedef enum
     NODE_PARAM_LIST,    // Lista de parâmetros de função
     NODE_ARG_LIST,      // Lista de argumentos em chamadas de função
     NODE_FIELD_ASSIGN,  // Para atribuição a campo de struct (ex: p.x = 1)
-    NODE_FIELD_ACCESS,  // Para acesso a campo de struct (ex: p.x)
+    NODE_FIELD_ACCESS   // Para acesso a campo de struct (ex: p.x)
 } NodeType;
 
-// Enumeração para os operadores (como definido anteriormente)
+// Enumeração para os operadores
 typedef enum
 {
     OP_ADD_TYPE,
@@ -69,6 +70,7 @@ typedef enum
     OP_NOT_TYPE,
     OP_INC_TYPE,
     OP_DEC_TYPE,
+    OP_INDEX_TYPE, // Adicionado para acesso a arrays
     OP_UNKNOWN_TYPE
 } OperatorType;
 
@@ -127,6 +129,7 @@ NoAST *criarNoErro();
 
 // Funções para comandos (statements)
 NoAST *criarNoDeclaracaoVar(char *nome, Tipo tipo_declarado, NoAST *inicializacao_expr);
+NoAST *criarNoDeclaracaoVarArray(char *nome, Tipo tipo_declarado, NoAST *tamanho_expr);
 NoAST *criarNoReturn(NoAST *expr_retorno);
 NoAST *criarNoIf(NoAST *condicao, NoAST *bloco_then, NoAST *bloco_else); // bloco_else pode ser NULL
 NoAST *criarNoWhile(NoAST *condicao, NoAST *bloco);
@@ -138,7 +141,7 @@ NoAST *criarNoDefault(NoAST *statement_list);
 NoAST *criarNoCompoundStmt(NoAST *lista_statements); // Para blocos {}
 NoAST *criarNoBreak();
 NoAST *criarNoContinue();
-NoAST *criarNoChamadaFuncao(char *nome_func, NoAST *args_list);
+NoAST *criarNoChamadaFuncao(char *nome_func, NoAST *args_list, Tipo tipo_retorno);
 NoAST *criarNoAtribuicaoCampo(NoAST *struct_expr, char *campo, NoAST *valor);
 NoAST *criarNoAcessoCampo(NoAST *struct_expr, char *campo);
 
