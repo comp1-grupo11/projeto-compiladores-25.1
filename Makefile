@@ -48,7 +48,11 @@ test: $(TARGET)
 	@echo "\n🔍 Iniciando testes..."
 	@for test in $(TEST_FILES); do \
 		echo "\n🔬 Testando $$test:"; \
-		./$(TARGET) $$test || echo "❌ Falha no teste $$test"; \
+        if ./$(TARGET) $$test; then \
+            echo "✅ Teste concluído com sucesso: $$test"; \
+        else \
+            echo "❌ Falha no teste $$test"; \
+        fi \
 	done
 	@echo "\n🏁 Todos os testes concluídos\n"
 
