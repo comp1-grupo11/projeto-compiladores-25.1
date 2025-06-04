@@ -12,6 +12,8 @@ extern char* yytext;
 extern int yylineno;
 
 void yyerror(const char *s);
+void criarEscopoLocal(void);
+void destruirEscopoLocal(void);
 
 Tipo current_decl_type;
 %}
@@ -102,19 +104,9 @@ struct_field:
     type_specifier declarator_list SEMICOLON
 ;
 
-preprocessor_list:
-    /* empty */
-    | preprocessor_list preprocessor
-;
-
 preprocessor:
     PP_INCLUDE
     | PP_DEFINE
-;
-
-function_list:
-    function
-    | function_list function
 ;
 
 function:
