@@ -72,6 +72,7 @@ Tipo current_decl_type;
 %left OP_MUL OP_DIV OP_MOD
 %right OP_NOT OP_INC OP_DEC
 %left POSTFIX_LEVEL
+%left DOT LBRACKET RBRACKET
 
 %%
 
@@ -318,8 +319,12 @@ declarator:
             inserirSimbolo($1, current_decl_type, VARIAVEL, tamanho, 0, yylineno, 0, ESCOPO_LOCAL);
 
             if ($3 == NULL || $3->tipo_dado == TIPO_ERRO || !tiposCompativeis(current_decl_type, $3->tipo_dado)) {
-                fprintf(stderr, "Erro de tipo: Atribuição de tipo incompatível para '%s' (tipo %d) com expressão (tipo %d) na linha %d.\n",
-                        $1, current_decl_type, ($3 ? $3->tipo_dado : TIPO_ERRO), yylineno);
+                fprintf(stderr,
+                        "Erro de tipo: Atribuição de tipo incompatível para '%s' (tipo %s) com expressão (tipo %s) na linha %d.\n",
+                        $1,
+                        nomeTipo(current_decl_type),
+                        nomeTipo($3 ? $3->tipo_dado : TIPO_ERRO),
+                        yylineno);
                 $$ = criarNoErro();
             } else {
                 $$ = criarNoDeclaracaoVar($1, current_decl_type, $3);
@@ -484,8 +489,12 @@ expr:
             $$ = criarNoErro();
         } else {
             if ($3 == NULL || $3->tipo_dado == TIPO_ERRO || !tiposCompativeis(s->tipo, $3->tipo_dado)) {
-                fprintf(stderr, "Erro de tipo: Atribuição de tipo incompatível para '%s' (tipo %d) com expressao (tipo %d) na linha %d.\n",
-                        s->nome, s->tipo, ($3 ? $3->tipo_dado : TIPO_ERRO), yylineno);
+                fprintf(stderr,
+                        "Erro de tipo: Atribuição de tipo incompatível para '%s' (tipo %s) com expressao (tipo %s) na linha %d.\n",
+                        s->nome,
+                        nomeTipo(s->tipo),
+                        nomeTipo($3 ? $3->tipo_dado : TIPO_ERRO),
+                        yylineno);
                 $$ = criarNoErro();
             } else {
                 $$ = criarNoOp(OP_ASSIGN_TYPE, criarNoId($1, s->tipo), $3);

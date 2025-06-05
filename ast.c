@@ -5,6 +5,23 @@
 
 extern int yylineno; // Para obter o número da linha atual
 
+const char* nomeTipo(Tipo tipo)
+{
+    switch (tipo)
+    {
+    case TIPO_INT:     return "int";
+    case TIPO_FLOAT:   return "float";
+    case TIPO_DOUBLE:  return "double";
+    case TIPO_CHAR:    return "char";
+    case TIPO_STRING:  return "string";
+    case TIPO_VOID:    return "void";
+    case TIPO_OBJETO:  return "struct";
+    case TIPO_ERRO:    return "erro";
+    default:           return "desconhecido";
+    }
+}
+
+
 // Implementação da função auxiliar para alocar um nó base
 static NoAST *alocarNoAST(NodeType tipo_no)
 {

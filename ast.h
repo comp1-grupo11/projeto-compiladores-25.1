@@ -16,6 +16,8 @@ typedef enum
     TIPO_ERRO    // Para representar nós que resultam de erros semânticos/sintáticos
 } Tipo;
 
+const char* nomeTipo(Tipo tipo);
+
 // Enumeração para o tipo de nó na AST
 typedef enum
 {
