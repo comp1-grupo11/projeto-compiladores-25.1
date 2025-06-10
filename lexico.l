@@ -2,12 +2,39 @@
 extern void yyerror(const char *s);
 #include "ast.h"
 #include "parser.tab.h"
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
 char temp_str[1024];
 int current_line = 1;
 
+// Suporte a macros numéricas simples
+typedef struct Macro {
+    char nome[64];
+    int valor;
+    struct Macro *prox;
+} Macro;
+
+Macro *lista_macros = NULL;
+
+void adicionar_macro(const char *nome, int valor) {
+    Macro *m = malloc(sizeof(Macro));
+    strcpy(m->nome, nome);
+    m->valor = valor;
+    m->prox = lista_macros;
+    lista_macros = m;
+}
+
+int buscar_macro(const char *nome, int *valor) {
+    for (Macro *m = lista_macros; m; m = m->prox) {
+        if (strcmp(m->nome, nome) == 0) {
+            *valor = m->valor;
+            return 1;
+        }
+    }
+    return 0;
+}
 %}
 
 %option noyywrap
@@ -30,7 +57,11 @@ PP_DIR      #(include|define|ifdef|endif|ifndef|elif|else)
     return PP_INCLUDE;
 }
 
-^[ \t]*#define[ \t]+{ID}([ \t]*\(?[a-zA-Z0-9_, ]*\)?)?[ \t]+.*\n {
+^[ \t]*#define[ \t]+{ID}[ \t]+{DIGIT}+.*\n {
+    char nome_macro[64];
+    int valor_macro;
+    sscanf(yytext, "#define %63s %d", nome_macro, &valor_macro);
+    adicionar_macro(nome_macro, valor_macro);
     current_line++;
     return PP_DEFINE;
 }
@@ -158,7 +189,16 @@ PP_DIR      #(include|define|ifdef|endif|ifndef|elif|else)
 ":"             { return COLON; }
 "?"             { return OP_TERNARY; }
 
-{ID}            { yylval.str_val = strdup(yytext); return IDENTIFIER; }
+{ID}            { 
+    int macro_val;
+    if (buscar_macro(yytext, &macro_val)) {
+        yylval.int_val = macro_val;
+        return INT_LITERAL;
+    } else {
+        yylval.str_val = strdup(yytext);
+        return IDENTIFIER;
+    }
+}
 
 \n              { current_line++; }
 {SPACE}+        { /* Ignorar */ }

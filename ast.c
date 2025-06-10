@@ -5,6 +5,23 @@
 
 extern int yylineno; // Para obter o número da linha atual
 
+const char* nomeTipo(Tipo tipo)
+{
+    switch (tipo)
+    {
+    case TIPO_INT:     return "int";
+    case TIPO_FLOAT:   return "float";
+    case TIPO_DOUBLE:  return "double";
+    case TIPO_CHAR:    return "char";
+    case TIPO_STRING:  return "string";
+    case TIPO_VOID:    return "void";
+    case TIPO_OBJETO:  return "struct";
+    case TIPO_ERRO:    return "erro";
+    default:           return "desconhecido";
+    }
+}
+
+
 // Implementação da função auxiliar para alocar um nó base
 static NoAST *alocarNoAST(NodeType tipo_no)
 {
@@ -33,6 +50,22 @@ NoAST *criarNoDeclaracaoVar(char *nome, Tipo tipo_declarado, NoAST *inicializaca
         exit(EXIT_FAILURE);
     }
     no->data.decl_info.inicializacao_expr = inicializacao_expr;
+    return no;
+}
+
+// Implementação da função de criação de nó de declaração de variável array
+NoAST *criarNoDeclaracaoVarArray(char *nome, Tipo tipo_declarado, NoAST *tamanho_expr)
+{
+    NoAST *no = alocarNoAST(NODE_DECLARATION);
+    no->tipo_dado = tipo_declarado;
+    no->data.decl_info.nome_declaracao = strdup(nome);
+    if (no->data.decl_info.nome_declaracao == NULL)
+    {
+        fprintf(stderr, "Erro de alocacao de memoria para nome do array '%s' na declaracao na linha %d.\n", nome, yylineno);
+        liberarAST(no);
+        exit(EXIT_FAILURE);
+    }
+    no->data.decl_info.inicializacao_expr = tamanho_expr; // Aqui você pode guardar o tamanho ou NULL
     return no;
 }
 
@@ -142,7 +175,7 @@ NoAST *criarNoContinue()
 }
 
 // Implementação da função de criação de nó de chamada de função
-NoAST *criarNoChamadaFuncao(char *nome_func, NoAST *args_list)
+NoAST *criarNoChamadaFuncao(char *nome_func, NoAST *args_list, Tipo tipo_retorno)
 {
     NoAST *no = alocarNoAST(NODE_FUNCTION_CALL);
     no->data.func_name = strdup(nome_func);
@@ -152,8 +185,8 @@ NoAST *criarNoChamadaFuncao(char *nome_func, NoAST *args_list)
         liberarAST(no);
         exit(EXIT_FAILURE);
     }
-    no->esquerda = args_list;  // A lista de argumentos é o filho esquerdo
-    no->tipo_dado = TIPO_ERRO; // O tipo real será resolvido na análise semântica
+    no->esquerda = args_list;
+    no->tipo_dado = tipo_retorno; // Agora usa o tipo correto!
     return no;
 }
 
