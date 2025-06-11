@@ -1,6 +1,19 @@
+# VS Code
+.vscode/
+
+# Build e binários
+build/
 *.o
-lex.yy.c
-parser.tab.c
-parser.tab.h
-lexer
+*.out
+*.exe
+
+# Arquivos gerados por Flex/Bison
+*.tab.*
+lex.yy.*
+*.output
 parser
+
+# Outros
+*.swp
+*~
+.DS_Store
