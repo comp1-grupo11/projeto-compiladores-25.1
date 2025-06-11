@@ -14,8 +14,10 @@ extern int yylineno;
 void yyerror(const char *s);
 void criarEscopoLocal(void);
 void destruirEscopoLocal(void);
+void gerarTypeScript(NoAST *no, FILE *saida);
 
 Tipo current_decl_type;
+NoAST *raiz_ast = NULL;
 %}
 
 %define parse.error verbose
@@ -45,9 +47,10 @@ Tipo current_decl_type;
 
 /* Types */
 %type <tipo_decl> type_specifier
-%type <no_ast> stmt compound_stmt stmt_list var_decl declarator_list declarator expr args arg_list expr_list
+%type <no_ast> program toplevel_list toplevel function params param_list param_decl stmt compound_stmt stmt_list
+%type <no_ast> var_decl declarator_list declarator expr args arg_list expr_list
 %type <no_ast> for_init for_cond for_iter switch_body case_list case_stmt default_case const_expr
-%type <no_ast> field_assign_list field_assign param_decl
+%type <no_ast> field_assign_list field_assign
 %token TYPE_INT TYPE_CHAR TYPE_FLOAT TYPE_DOUBLE TYPE_VOID
 
 /* Operators */
@@ -77,19 +80,27 @@ Tipo current_decl_type;
 %%
 
 program:
-    toplevel_list
+    toplevel_list { raiz_ast = $1; }
 ;
 
 toplevel_list:
-      /* empty */
-    | toplevel_list toplevel
+      /* empty */ { $$ = NULL; }
+    | toplevel_list toplevel {
+        if ($1 == NULL) $$ = $2;
+        else {
+            NoAST *current = $1;
+            while (current->proximo) current = current->proximo;
+            current->proximo = $2;
+            $$ = $1;
+        }
+    }
 ;
 
 toplevel:
-      preprocessor
-    | function
-    | var_decl SEMICOLON
-    | struct_decl
+      preprocessor { $$ = NULL; }
+    | function { $$ = $1; }
+    | var_decl SEMICOLON { $$ = $1; }
+    | struct_decl { $$ = NULL; }
 ;
 
 struct_decl:
@@ -111,10 +122,13 @@ preprocessor:
 ;
 
 function:
-    type_specifier IDENTIFIER LPAREN params RPAREN LBRACE {
+    type_specifier IDENTIFIER LPAREN params RPAREN LBRACE stmt_list RBRACE
+    {
         inserirSimbolo($2, $1, FUNCAO, 0, -1, yylineno, 0, ESCOPO_GLOBAL);
         criarEscopoLocal();
-    } stmt_list RBRACE { destruirEscopoLocal(); }
+        destruirEscopoLocal();
+        $$ = criarNoFuncao($2, $1, $4, $7);
+    }
 ;
 
 type_specifier:
@@ -134,8 +148,8 @@ type_specifier:
 ;
 
 params:
-    param_list
-    | /* empty */
+    param_list { $$ = $1; }
+    | /* empty */ { $$ = NULL; }
 ;
 
 param_list:
@@ -178,7 +192,9 @@ stmt:
     | KW_IF LPAREN expr RPAREN stmt KW_ELSE stmt { $$ = criarNoIf($3, $5, $7); }
     | KW_WHILE LPAREN expr RPAREN stmt { $$ = criarNoWhile($3, $5); }
     | KW_FOR LPAREN for_init SEMICOLON for_cond SEMICOLON for_iter RPAREN stmt {
+        criarEscopoLocal();
         $$ = criarNoFor($3, $5, $7, $9);
+        destruirEscopoLocal();
     }
     | KW_SWITCH LPAREN expr RPAREN switch_body { $$ = criarNoSwitch($3, $5); }
     | compound_stmt                { $$ = $1; }
@@ -618,6 +634,14 @@ int main(int argc, char *argv[]) {
     }
 
     yyparse();
-    
+
+    FILE *saida_ts = fopen("output.ts", "w");
+    if (!saida_ts) {
+        perror("Erro ao criar arquivo output.ts");
+        return 1;
+    }
+    gerarTypeScript(raiz_ast, saida_ts);
+    fclose(saida_ts);
+
     return 0;
 }

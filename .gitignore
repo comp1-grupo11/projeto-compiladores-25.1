@@ -11,6 +11,7 @@ build/
 *.tab.*
 lex.yy.*
 *.output
+*.ts
 parser
 
 # Outros

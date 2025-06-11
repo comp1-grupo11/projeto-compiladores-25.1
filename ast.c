@@ -628,3 +628,13 @@ int tiposCompativeis(Tipo t1, Tipo t2)
         return 1;
     return 0;
 }
+
+NoAST *criarNoFuncao(char *nome, Tipo tipo_retorno, NoAST *params, NoAST *corpo)
+{
+    NoAST *no = alocarNoAST(NODE_FUNCTION_DEF);
+    no->data.func_name = strdup(nome);
+    no->tipo_dado = tipo_retorno;
+    no->esquerda = params;
+    no->direita = corpo;
+    return no;
+}

@@ -16,7 +16,7 @@ typedef enum
     TIPO_ERRO    // Para representar nós que resultam de erros semânticos/sintáticos
 } Tipo;
 
-const char* nomeTipo(Tipo tipo);
+const char *nomeTipo(Tipo tipo);
 
 // Enumeração para o tipo de nó na AST
 typedef enum
@@ -146,6 +146,7 @@ NoAST *criarNoContinue();
 NoAST *criarNoChamadaFuncao(char *nome_func, NoAST *args_list, Tipo tipo_retorno);
 NoAST *criarNoAtribuicaoCampo(NoAST *struct_expr, char *campo, NoAST *valor);
 NoAST *criarNoAcessoCampo(NoAST *struct_expr, char *campo);
+NoAST *criarNoFuncao(char *nome, Tipo tipo_retorno, NoAST *params, NoAST *corpo);
 
 // Funções de manipulação da AST
 void imprimirAST(NoAST *no);

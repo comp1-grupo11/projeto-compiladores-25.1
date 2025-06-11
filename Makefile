@@ -8,7 +8,7 @@ BISON = bison
 TARGET = parser
 
 # Arquivos fonte
-SRC = parser.tab.c lex.yy.c ast.c tabela.c gerador.c
+SRC = parser.tab.c lex.yy.c ast.c tabela.c gerador.c gerador_ts.c
 OBJ = $(SRC:.c=.o)
 
 # Diretórios
