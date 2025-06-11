@@ -5,22 +5,246 @@
 
 extern int yylineno; // Para obter o número da linha atual
 
-const char* nomeTipo(Tipo tipo)
+// Função auxiliar para imprimir indentação
+void imprimirIndentacao(int indent)
 {
-    switch (tipo)
+    for (int i = 0; i < indent; i++)
+        printf("    ");
+}
+
+// Versão indentada da impressão da AST
+void imprimirASTComIndent(NoAST *no, int indent)
+{
+    if (no == NULL)
     {
-    case TIPO_INT:     return "int";
-    case TIPO_FLOAT:   return "float";
-    case TIPO_DOUBLE:  return "double";
-    case TIPO_CHAR:    return "char";
-    case TIPO_STRING:  return "string";
-    case TIPO_VOID:    return "void";
-    case TIPO_OBJETO:  return "struct";
-    case TIPO_ERRO:    return "erro";
-    default:           return "desconhecido";
+        return;
+    }
+
+    switch (no->tipo_no)
+    {
+    case NODE_OPERATOR:
+        if (no->data.op_type == OP_NOT_TYPE || no->data.op_type == OP_INC_TYPE || no->data.op_type == OP_DEC_TYPE)
+        {
+            imprimirIndentacao(indent);
+            printf("(%s",
+                   (no->data.op_type == OP_NOT_TYPE) ? "!" : (no->data.op_type == OP_INC_TYPE) ? "++"
+                                                         : (no->data.op_type == OP_DEC_TYPE)   ? "--"
+                                                                                               : "?");
+            imprimirASTComIndent(no->esquerda, indent);
+            printf(")");
+        }
+        else
+        {
+            imprimirIndentacao(indent);
+            printf("(");
+            imprimirASTComIndent(no->esquerda, indent);
+            printf(" %s ",
+                   (no->data.op_type == OP_ADD_TYPE) ? "+" : (no->data.op_type == OP_SUB_TYPE)      ? "-"
+                                                         : (no->data.op_type == OP_MUL_TYPE)        ? "*"
+                                                         : (no->data.op_type == OP_DIV_TYPE)        ? "/"
+                                                         : (no->data.op_type == OP_ASSIGN_TYPE)     ? "="
+                                                         : (no->data.op_type == OP_EQ_TYPE)         ? "=="
+                                                         : (no->data.op_type == OP_NE_TYPE)         ? "!="
+                                                         : (no->data.op_type == OP_LT_TYPE)         ? "<"
+                                                         : (no->data.op_type == OP_LE_TYPE)         ? "<="
+                                                         : (no->data.op_type == OP_GT_TYPE)         ? ">"
+                                                         : (no->data.op_type == OP_GE_TYPE)         ? ">="
+                                                         : (no->data.op_type == OP_AND_TYPE)        ? "&&"
+                                                         : (no->data.op_type == OP_OR_TYPE)         ? "||"
+                                                         : (no->data.op_type == OP_ADD_ASSIGN_TYPE) ? "+="
+                                                         : (no->data.op_type == OP_SUB_ASSIGN_TYPE) ? "-="
+                                                         : (no->data.op_type == OP_MUL_ASSIGN_TYPE) ? "*="
+                                                         : (no->data.op_type == OP_DIV_ASSIGN_TYPE) ? "/="
+                                                                                                    : "?");
+            imprimirASTComIndent(no->direita, indent);
+            printf(")");
+        }
+        break;
+
+    case NODE_LITERAL:
+        imprimirIndentacao(indent);
+        switch (no->tipo_dado)
+        {
+        case TIPO_INT:
+            printf("%d", no->data.literal.val_int);
+            break;
+        case TIPO_FLOAT:
+            printf("%f", no->data.literal.val_float);
+            break;
+        case TIPO_DOUBLE:
+            printf("%lf", no->data.literal.val_double);
+            break;
+        case TIPO_CHAR:
+            printf("'%c'", no->data.literal.val_char);
+            break;
+        case TIPO_STRING:
+            printf("\"%s\"", no->data.literal.val_string);
+            break;
+        default:
+            printf("[LITERAL DESCONHECIDO]");
+            break;
+        }
+        break;
+
+    case NODE_IDENTIFIER:
+        imprimirIndentacao(indent);
+        printf("%s", no->data.nome_id);
+        break;
+
+    case NODE_DECLARATION:
+        imprimirIndentacao(indent);
+        printf("%s %s",
+               (no->tipo_dado == TIPO_INT) ? "int" : (no->tipo_dado == TIPO_FLOAT) ? "float"
+                                                 : (no->tipo_dado == TIPO_DOUBLE)  ? "double"
+                                                 : (no->tipo_dado == TIPO_CHAR)    ? "char"
+                                                 : (no->tipo_dado == TIPO_STRING)  ? "string"
+                                                                                   : "tipo_desconhecido",
+               no->data.decl_info.nome_declaracao);
+        if (no->data.decl_info.inicializacao_expr)
+        {
+            printf(" = ");
+            imprimirASTComIndent(no->data.decl_info.inicializacao_expr, indent);
+        }
+        printf(";");
+        break;
+
+    case NODE_RETURN:
+        imprimirIndentacao(indent);
+        printf("return ");
+        imprimirASTComIndent(no->esquerda, indent);
+        printf(";");
+        break;
+
+    case NODE_IF:
+        imprimirIndentacao(indent);
+        printf("if (");
+        imprimirASTComIndent(no->esquerda, indent);
+        printf(")\n");
+        imprimirASTComIndent(no->direita, indent + 1);
+        if (no->centro)
+        {
+            printf("\n");
+            imprimirIndentacao(indent);
+            printf("else\n");
+            imprimirASTComIndent(no->centro, indent + 1);
+        }
+        break;
+
+    case NODE_WHILE:
+        imprimirIndentacao(indent);
+        printf("while (");
+        imprimirASTComIndent(no->esquerda, indent);
+        printf(")\n");
+        imprimirASTComIndent(no->direita, indent + 1);
+        break;
+
+    case NODE_FOR:
+        imprimirIndentacao(indent);
+        printf("for (");
+        if (no->esquerda)
+            imprimirASTComIndent(no->esquerda, 0);
+        printf("; ");
+        if (no->direita)
+            imprimirASTComIndent(no->direita, 0);
+        printf("; ");
+        if (no->centro)
+            imprimirASTComIndent(no->centro, 0);
+        printf(")\n");
+        if (no->proximo)
+            imprimirASTComIndent(no->proximo, indent + 1);
+        break;
+
+    case NODE_COMPOUND_STMT:
+        imprimirIndentacao(indent);
+        printf("{\n");
+        imprimirASTComIndent(no->esquerda, indent + 1);
+        imprimirIndentacao(indent);
+        printf("}\n");
+        break;
+
+    case NODE_BREAK:
+        imprimirIndentacao(indent);
+        printf("break;");
+        break;
+
+    case NODE_CONTINUE:
+        imprimirIndentacao(indent);
+        printf("continue;");
+        break;
+
+    case NODE_FUNCTION_CALL:
+        imprimirIndentacao(indent);
+        printf("%s(", no->data.func_name);
+        imprimirASTComIndent(no->esquerda, 0);
+        printf(")");
+        break;
+
+    case NODE_SWITCH:
+        imprimirIndentacao(indent);
+        printf("switch (");
+        imprimirASTComIndent(no->esquerda, 0);
+        printf(")\n");
+        imprimirASTComIndent(no->direita, indent + 1);
+        break;
+
+    case NODE_SWITCH_BODY:
+        imprimirASTComIndent(no->esquerda, indent);
+        if (no->direita)
+        {
+            imprimirASTComIndent(no->direita, indent);
+        }
+        break;
+
+    case NODE_CASE:
+        imprimirIndentacao(indent);
+        printf("case ");
+        imprimirASTComIndent(no->esquerda, 0);
+        printf(":\n");
+        imprimirASTComIndent(no->direita, indent + 1);
+        break;
+
+    case NODE_DEFAULT:
+        imprimirIndentacao(indent);
+        printf("default:\n");
+        imprimirASTComIndent(no->esquerda, indent + 1);
+        break;
+
+    case NODE_ERROR:
+        imprimirIndentacao(indent);
+        printf("[NÓ DE ERRO]");
+        break;
+
+    default:
+        imprimirIndentacao(indent);
+        printf("[TIPO DE NÓ DESCONHECIDO]");
+        break;
     }
 }
 
+const char *nomeTipo(Tipo tipo)
+{
+    switch (tipo)
+    {
+    case TIPO_INT:
+        return "int";
+    case TIPO_FLOAT:
+        return "float";
+    case TIPO_DOUBLE:
+        return "double";
+    case TIPO_CHAR:
+        return "char";
+    case TIPO_STRING:
+        return "string";
+    case TIPO_VOID:
+        return "void";
+    case TIPO_OBJETO:
+        return "struct";
+    case TIPO_ERRO:
+        return "erro";
+    default:
+        return "desconhecido";
+    }
+}
 
 // Implementação da função auxiliar para alocar um nó base
 static NoAST *alocarNoAST(NodeType tipo_no)

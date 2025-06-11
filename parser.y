@@ -16,9 +16,12 @@ void criarEscopoLocal(void);
 void destruirEscopoLocal(void);
 
 Tipo current_decl_type;
+
+void gerarCodigoTs(NoAST *no, int indent);
+NoAST *raiz_programa;
 %}
 
-%define parse.error verbose
+// %define parse.error verbose
 
 %union {
     char* str_val;
@@ -48,6 +51,7 @@ Tipo current_decl_type;
 %type <no_ast> stmt compound_stmt stmt_list var_decl declarator_list declarator expr args arg_list expr_list
 %type <no_ast> for_init for_cond for_iter switch_body case_list case_stmt default_case const_expr
 %type <no_ast> field_assign_list field_assign param_decl
+%type <no_ast> program toplevel_list toplevel
 %token TYPE_INT TYPE_CHAR TYPE_FLOAT TYPE_DOUBLE TYPE_VOID
 
 /* Operators */
@@ -77,7 +81,7 @@ Tipo current_decl_type;
 %%
 
 program:
-    toplevel_list
+    toplevel_list { raiz_programa = $1; }
 ;
 
 toplevel_list:
@@ -619,5 +623,6 @@ int main(int argc, char *argv[]) {
 
     yyparse();
     
+    gerarCodigoTs(raiz_programa, 0);
     return 0;
 }
