@@ -482,24 +482,24 @@ expr:
             $$ = criarNoChamadaFuncao($1, $3, s->tipo);
         }
     }
-    | IDENTIFIER OP_ASSIGN expr {
-        Simbolo *s = buscarSimbolo($1);
-        if (!s) {
-            yyerror("Identificador não declarado para atribuição.");
+    | expr OP_ASSIGN expr {
+        if ($1 == NULL || $1->tipo_no == NODE_ERROR) {
+            yyerror("Atribuição para expressão inválida.");
+            $$ = criarNoErro();
+        } else if ($1->tipo_no != NODE_IDENTIFIER &&
+                   $1->tipo_no != NODE_FIELD_ACCESS &&
+                   !($1->tipo_no == NODE_OPERATOR && $1->data.op_type == OP_INDEX_TYPE)) {
+            yyerror("Atribuição só é permitida para variáveis, campos ou elementos de array.");
+            $$ = criarNoErro();
+        } else if ($3 == NULL || $3->tipo_dado == TIPO_ERRO || !tiposCompativeis($1->tipo_dado, $3->tipo_dado)) {
+            fprintf(stderr,
+                    "Erro de tipo: Atribuição de tipo incompatível (tipo %s) com expressão (tipo %s) na linha %d.\n",
+                    nomeTipo($1->tipo_dado),
+                    nomeTipo($3 ? $3->tipo_dado : TIPO_ERRO),
+                    yylineno);
             $$ = criarNoErro();
         } else {
-            if ($3 == NULL || $3->tipo_dado == TIPO_ERRO || !tiposCompativeis(s->tipo, $3->tipo_dado)) {
-                fprintf(stderr,
-                        "Erro de tipo: Atribuição de tipo incompatível para '%s' (tipo %s) com expressao (tipo %s) na linha %d.\n",
-                        s->nome,
-                        nomeTipo(s->tipo),
-                        nomeTipo($3 ? $3->tipo_dado : TIPO_ERRO),
-                        yylineno);
-                $$ = criarNoErro();
-            } else {
-                $$ = criarNoOp(OP_ASSIGN_TYPE, criarNoId($1, s->tipo), $3);
-                s->linha_ultimo_uso = yylineno;
-            }
+            $$ = criarNoOp(OP_ASSIGN_TYPE, $1, $3);
         }
     }
     | expr DOT IDENTIFIER {
