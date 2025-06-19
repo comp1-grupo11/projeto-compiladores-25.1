@@ -143,35 +143,36 @@ void gerarTypeScript(NoAST *no, FILE *saida)
     case NODE_IF:
         fprintf(saida, "if (");
         gerarTypeScript(no->esquerda, saida);
-        fprintf(saida, ") {\n");
+        fprintf(saida, ") ");
         gerarTypeScript(no->direita, saida); // then block
-        fprintf(saida, "}");
         if (no->centro)
         {
-            fprintf(saida, " else {\n");
+            fprintf(saida, "else ");
             gerarTypeScript(no->centro, saida); // else block
-            fprintf(saida, "}");
         }
-        fprintf(saida, "\n");
         break;
     case NODE_FOR:
         fprintf(saida, "for (");
         if (no->esquerda)
             gerarTypeScript(no->esquerda, saida); // init
-        fprintf(saida, "; ");
+        else
+            fprintf(saida, ";");
+        fprintf(saida, " ");
         if (no->direita)
             gerarTypeScript(no->direita, saida); // condition
         fprintf(saida, "; ");
         if (no->centro)
             gerarTypeScript(no->centro, saida); // iteration
-        fprintf(saida, ") {\n");
-        if (no->proximo && no->proximo->tipo_no != NODE_COMPOUND_STMT)
+        fprintf(saida, ") ");
+        if (no->proximo && no->proximo->tipo_no == NODE_COMPOUND_STMT)
         {
             gerarTypeScript(no->proximo, saida);
         }
-        else if (no->proximo)
+        else
         {
+            fprintf(saida, "{\n");
             gerarTypeScript(no->proximo, saida);
+            fprintf(saida, "}\n");
         }
         break;
     default:
@@ -179,6 +180,6 @@ void gerarTypeScript(NoAST *no, FILE *saida)
         break;
     }
 
-    if (no->proximo)
+    if (no->tipo_no != NODE_FOR && no->proximo)
         gerarTypeScript(no->proximo, saida);
 }

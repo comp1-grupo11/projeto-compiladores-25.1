@@ -315,14 +315,18 @@ NoAST *criarNoWhile(NoAST *condicao, NoAST *bloco)
 }
 
 // Implementação da função de criação de nó for
-NoAST *criarNoFor(NoAST *init, NoAST *cond, NoAST *iter, NoAST *bloco)
+// Estrutura correta:
+//   esquerda: inicialização (ex: let i = 0)
+//   direita: condição (ex: i < 3)
+//   centro: incremento (ex: i = i + 1)
+//   proximo: corpo do for (bloco de comandos)
+NoAST *criarNoFor(NoAST *init, NoAST *cond, NoAST *inc, NoAST *corpo)
 {
     NoAST *no = alocarNoAST(NODE_FOR);
-    no->esquerda = init; // Inicialização (pode ser NULL)
-    no->direita = cond;  // Condição (pode ser NULL)
-    no->centro = iter;   // Iteração (pode ser NULL)
-    no->proximo = bloco; // O bloco do 'for' (usando 'proximo' para o 4º filho)
-    no->tipo_dado = TIPO_VOID;
+    no->esquerda = init;
+    no->direita = cond;
+    no->centro = inc;
+    no->proximo = corpo;
     return no;
 }
 
@@ -568,6 +572,172 @@ NoAST *criarNoErro()
     no->direita = NULL;
     no->linha = yylineno;
     return no;
+}
+
+// Impressão da AST em formato C-like para uso em arquivos (por exemplo, geração de código/intermediário)
+void imprimirNoAST(NoAST *no, FILE *out)
+{
+    if (no == NULL)
+        return;
+    switch (no->tipo_no)
+    {
+    case NODE_OPERATOR:
+        if (no->data.op_type == OP_NOT_TYPE || no->data.op_type == OP_INC_TYPE || no->data.op_type == OP_DEC_TYPE)
+        {
+            fprintf(out, "(%s", (no->data.op_type == OP_NOT_TYPE) ? "!" : (no->data.op_type == OP_INC_TYPE) ? "++"
+                                                                      : (no->data.op_type == OP_DEC_TYPE)   ? "--"
+                                                                                                            : "?");
+            imprimirNoAST(no->esquerda, out);
+            fprintf(out, ")");
+        }
+        else
+        {
+            fprintf(out, "(");
+            imprimirNoAST(no->esquerda, out);
+            fprintf(out, " %s ",
+                    (no->data.op_type == OP_ADD_TYPE) ? "+" : (no->data.op_type == OP_SUB_TYPE)      ? "-"
+                                                          : (no->data.op_type == OP_MUL_TYPE)        ? "*"
+                                                          : (no->data.op_type == OP_DIV_TYPE)        ? "/"
+                                                          : (no->data.op_type == OP_ASSIGN_TYPE)     ? "="
+                                                          : (no->data.op_type == OP_EQ_TYPE)         ? "=="
+                                                          : (no->data.op_type == OP_NE_TYPE)         ? "!="
+                                                          : (no->data.op_type == OP_LT_TYPE)         ? "<"
+                                                          : (no->data.op_type == OP_LE_TYPE)         ? "<="
+                                                          : (no->data.op_type == OP_GT_TYPE)         ? ">"
+                                                          : (no->data.op_type == OP_GE_TYPE)         ? ">="
+                                                          : (no->data.op_type == OP_AND_TYPE)        ? "&&"
+                                                          : (no->data.op_type == OP_OR_TYPE)         ? "||"
+                                                          : (no->data.op_type == OP_ADD_ASSIGN_TYPE) ? "+="
+                                                          : (no->data.op_type == OP_SUB_ASSIGN_TYPE) ? "-="
+                                                          : (no->data.op_type == OP_MUL_ASSIGN_TYPE) ? "*="
+                                                          : (no->data.op_type == OP_DIV_ASSIGN_TYPE) ? "/="
+                                                                                                     : "?");
+            imprimirNoAST(no->direita, out);
+            fprintf(out, ")");
+        }
+        break;
+    case NODE_LITERAL:
+        switch (no->tipo_dado)
+        {
+        case TIPO_INT:
+            fprintf(out, "%d", no->data.literal.val_int);
+            break;
+        case TIPO_FLOAT:
+            fprintf(out, "%f", no->data.literal.val_float);
+            break;
+        case TIPO_DOUBLE:
+            fprintf(out, "%lf", no->data.literal.val_double);
+            break;
+        case TIPO_CHAR:
+            fprintf(out, "'%c'", no->data.literal.val_char);
+            break;
+        case TIPO_STRING:
+            fprintf(out, "\"%s\"", no->data.literal.val_string);
+            break;
+        default:
+            fprintf(out, "[LITERAL DESCONHECIDO]");
+            break;
+        }
+        break;
+    case NODE_IDENTIFIER:
+        fprintf(out, "%s", no->data.nome_id);
+        break;
+    case NODE_DECLARATION:
+        fprintf(out, "%s %s",
+                (no->tipo_dado == TIPO_INT) ? "int" : (no->tipo_dado == TIPO_FLOAT) ? "float"
+                                                  : (no->tipo_dado == TIPO_DOUBLE)  ? "double"
+                                                  : (no->tipo_dado == TIPO_CHAR)    ? "char"
+                                                  : (no->tipo_dado == TIPO_STRING)  ? "string"
+                                                                                    : "tipo_desconhecido",
+                no->data.decl_info.nome_declaracao);
+        if (no->data.decl_info.inicializacao_expr)
+        {
+            fprintf(out, " = ");
+            imprimirNoAST(no->data.decl_info.inicializacao_expr, out);
+        }
+        fprintf(out, ";");
+        break;
+    case NODE_RETURN:
+        fprintf(out, "return ");
+        imprimirNoAST(no->esquerda, out);
+        fprintf(out, ";");
+        break;
+    case NODE_IF:
+        fprintf(out, "if (");
+        imprimirNoAST(no->esquerda, out);
+        fprintf(out, ") ");
+        imprimirNoAST(no->direita, out);
+        if (no->centro)
+        {
+            fprintf(out, " else ");
+            imprimirNoAST(no->centro, out);
+        }
+        break;
+    case NODE_WHILE:
+        fprintf(out, "while (");
+        imprimirNoAST(no->esquerda, out);
+        fprintf(out, ") ");
+        imprimirNoAST(no->direita, out);
+        break;
+
+    case NODE_FOR:
+        fprintf(out, "for (");
+        if (no->esquerda)
+            imprimirNoAST(no->esquerda, out);
+        fprintf(out, "; ");
+        if (no->direita)
+            imprimirNoAST(no->direita, out);
+        fprintf(out, "; ");
+        if (no->centro)
+            imprimirNoAST(no->centro, out);
+        fprintf(out, ") ");
+        if (no->proximo)
+            imprimirNoAST(no->proximo, out);
+        break;
+    case NODE_COMPOUND_STMT:
+        fprintf(out, "{\n");
+        imprimirNoAST(no->esquerda, out);
+        fprintf(out, "}\n");
+        break;
+    case NODE_BREAK:
+        fprintf(out, "break;");
+        break;
+    case NODE_CONTINUE:
+        fprintf(out, "continue;");
+        break;
+    case NODE_FUNCTION_CALL:
+        fprintf(out, "%s(", no->data.func_name);
+        imprimirNoAST(no->esquerda, out);
+        fprintf(out, ")");
+        break;
+    case NODE_SWITCH:
+        fprintf(out, "switch (");
+        imprimirNoAST(no->esquerda, out);
+        fprintf(out, ") ");
+        imprimirNoAST(no->direita, out);
+        break;
+    case NODE_SWITCH_BODY:
+        imprimirNoAST(no->esquerda, out);
+        if (no->direita)
+            imprimirNoAST(no->direita, out);
+        break;
+    case NODE_CASE:
+        fprintf(out, "case ");
+        imprimirNoAST(no->esquerda, out);
+        fprintf(out, ": ");
+        imprimirNoAST(no->direita, out);
+        break;
+    case NODE_DEFAULT:
+        fprintf(out, "default: ");
+        imprimirNoAST(no->esquerda, out);
+        break;
+    case NODE_ERROR:
+        fprintf(out, "[NÓ DE ERRO]");
+        break;
+    default:
+        fprintf(out, "[TIPO DE NÓ DESCONHECIDO]");
+        break;
+    }
 }
 
 NoAST *criarNoAtribuicaoCampo(NoAST *struct_expr, char *campo, NoAST *valor)

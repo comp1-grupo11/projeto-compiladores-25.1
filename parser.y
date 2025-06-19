@@ -55,6 +55,7 @@ NoAST *raiz_ast = NULL;
 %type <no_ast> var_decl declarator_list declarator expr args arg_list expr_list
 %type <no_ast> for_init for_cond for_iter switch_body case_list case_stmt default_case const_expr
 %type <no_ast> field_assign_list field_assign
+%type <no_ast> iteration_stmt
 %token TYPE_INT TYPE_CHAR TYPE_FLOAT TYPE_DOUBLE TYPE_VOID
 
 /* Operators */
@@ -188,16 +189,17 @@ compound_stmt:
 stmt_list:
     /* vazio */ { $$ = NULL; }
     | stmt_list stmt {
-        NoAST *head = $1;
-        if (head == NULL) {
+        if ($2 == NULL) {
+            $$ = $1;
+        } else if ($1 == NULL) {
             $$ = $2;
         } else {
-            NoAST *current = head;
+            NoAST *current = $1;
             while (current->proximo != NULL) {
                 current = current->proximo;
             }
             current->proximo = $2;
-            $$ = head;
+            $$ = $1;
         }
     }
 ;
@@ -208,16 +210,19 @@ stmt:
     | KW_IF LPAREN expr RPAREN stmt %prec IF_WITHOUT_ELSE { $$ = criarNoIf($3, $5, NULL); }
     | KW_IF LPAREN expr RPAREN stmt KW_ELSE stmt { $$ = criarNoIf($3, $5, $7); }
     | KW_WHILE LPAREN expr RPAREN stmt { $$ = criarNoWhile($3, $5); }
-    | KW_FOR LPAREN for_init SEMICOLON for_cond SEMICOLON for_iter RPAREN stmt {
-        criarEscopoLocal();
-        $$ = criarNoFor($3, $5, $7, $9);
-        destruirEscopoLocal();
-    }
+    | iteration_stmt               { $$ = $1; }
     | KW_SWITCH LPAREN expr RPAREN switch_body { $$ = criarNoSwitch($3, $5); }
     | compound_stmt                { $$ = $1; }
     | var_decl SEMICOLON           { $$ = $1; }
     | KW_BREAK SEMICOLON           { $$ = criarNoBreak(); }
     | KW_CONTINUE SEMICOLON        { $$ = criarNoContinue(); }
+
+iteration_stmt:
+    KW_FOR LPAREN for_init SEMICOLON for_cond SEMICOLON for_iter RPAREN stmt {
+        criarEscopoLocal();
+        $$ = criarNoFor($3, $5, $7, $9);
+        destruirEscopoLocal();
+    }
 ;
 
 for_init:
