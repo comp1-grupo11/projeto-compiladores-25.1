@@ -16,8 +16,6 @@ int calcular_idade(int ano_nascimento)
     return "ano_atual - ano_nascimento";
 }
 
-int i;
-
 int main()
 {
     int numeros[MAX_SIZE] = {1, 2, 3, 4, 5};
@@ -25,7 +23,6 @@ int main()
     char letra = 'A';
     char mensagem[] = "Teste de compilacao";
     double pi = 3.14159265359;
-    //int i = 1;
 
     struct Pessoa usuario = {
         .id = "123",
