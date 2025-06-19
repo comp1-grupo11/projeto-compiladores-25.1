@@ -1,7 +1,21 @@
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include "ast.h"
+
+void gerarTypeScript(NoAST *no, FILE *saida);
+
+void gerarArgumentos(NoAST *arg, FILE *saida)
+{
+    while (arg)
+    {
+        gerarTypeScript(arg, saida);
+        arg = arg->proximo;
+        if (arg)
+            fprintf(saida, ", ");
+    }
+}
 
 static const char *ts_type(Tipo tipo)
 {
@@ -112,12 +126,7 @@ void gerarTypeScript(NoAST *no, FILE *saida)
         break;
     case NODE_FUNCTION_CALL:
         fprintf(saida, "%s(", no->data.func_name);
-        for (NoAST *arg = no->esquerda; arg; arg = arg->proximo)
-        {
-            gerarTypeScript(arg, saida);
-            if (arg->proximo)
-                fprintf(saida, ", ");
-        }
+        gerarArgumentos(no->esquerda, saida);
         fprintf(saida, ")");
         break;
     case NODE_COMPOUND_STMT:

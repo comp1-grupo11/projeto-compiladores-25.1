@@ -117,6 +117,7 @@ typedef struct NoAST
     struct NoAST *direita;
     struct NoAST *centro;
     struct NoAST *proximo;
+    struct NoAST *parametros;
 
 } NoAST;
 
@@ -126,6 +127,8 @@ NoAST *criarNoUnario(OperatorType op, NoAST *operando);
 NoAST *criarNoNum(Tipo tipo, void *valor);
 NoAST *criarNoId(char *nome, Tipo tipo);
 NoAST *criarNoChar(char val);
+NoAST *criarNoListaParametros(NoAST *param, NoAST *proximo_param);
+NoAST *criarNoParametro(Tipo tipo, char *nome);
 NoAST *criarNoString(char *val);
 NoAST *criarNoErro();
 
