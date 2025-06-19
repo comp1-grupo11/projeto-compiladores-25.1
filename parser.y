@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stddef.h>
 #include "ast.h"
 #include "tabela.h"
 
@@ -14,11 +15,13 @@ extern int yylineno;
 void yyerror(const char *s);
 void criarEscopoLocal(void);
 void destruirEscopoLocal(void);
+void gerarTypeScript(NoAST *no, FILE *saida);
 
 Tipo current_decl_type;
 
 void gerarCodigoTs(NoAST *no, int indent);
 NoAST *raiz_programa;
+NoAST *raiz_ast = NULL;
 %}
 
 // %define parse.error verbose
@@ -48,10 +51,10 @@ NoAST *raiz_programa;
 
 /* Types */
 %type <tipo_decl> type_specifier
-%type <no_ast> stmt compound_stmt stmt_list var_decl declarator_list declarator expr args arg_list expr_list
+%type <no_ast> program toplevel_list toplevel function params param_list param_decl stmt compound_stmt stmt_list
+%type <no_ast> var_decl declarator_list declarator expr args arg_list expr_list
 %type <no_ast> for_init for_cond for_iter switch_body case_list case_stmt default_case const_expr
-%type <no_ast> field_assign_list field_assign param_decl
-%type <no_ast> program toplevel_list toplevel
+%type <no_ast> field_assign_list field_assign
 %token TYPE_INT TYPE_CHAR TYPE_FLOAT TYPE_DOUBLE TYPE_VOID
 
 /* Operators */
@@ -81,19 +84,27 @@ NoAST *raiz_programa;
 %%
 
 program:
-    toplevel_list { raiz_programa = $1; }
+    toplevel_list { raiz_ast = $1; }
 ;
 
 toplevel_list:
-      /* empty */
-    | toplevel_list toplevel
+      /* empty */ { $$ = NULL; }
+    | toplevel_list toplevel {
+        if ($1 == NULL) $$ = $2;
+        else {
+            NoAST *current = $1;
+            while (current->proximo) current = current->proximo;
+            current->proximo = $2;
+            $$ = $1;
+        }
+    }
 ;
 
 toplevel:
-      preprocessor
-    | function
-    | var_decl SEMICOLON
-    | struct_decl
+      preprocessor { $$ = NULL; }
+    | function { $$ = $1; }
+    | var_decl SEMICOLON { $$ = $1; }
+    | struct_decl { $$ = NULL; }
 ;
 
 struct_decl:
@@ -115,10 +126,13 @@ preprocessor:
 ;
 
 function:
-    type_specifier IDENTIFIER LPAREN params RPAREN LBRACE {
+    type_specifier IDENTIFIER LPAREN params RPAREN LBRACE stmt_list RBRACE
+    {
         inserirSimbolo($2, $1, FUNCAO, 0, -1, yylineno, 0, ESCOPO_GLOBAL);
         criarEscopoLocal();
-    } stmt_list RBRACE { destruirEscopoLocal(); }
+        destruirEscopoLocal();
+        $$ = criarNoFuncao($2, $1, $4, $7);
+    }
 ;
 
 type_specifier:
@@ -138,8 +152,8 @@ type_specifier:
 ;
 
 params:
-    param_list
-    | /* empty */
+    param_list { $$ = $1; }
+    | /* empty */ { $$ = NULL; }
 ;
 
 param_list:
@@ -182,7 +196,9 @@ stmt:
     | KW_IF LPAREN expr RPAREN stmt KW_ELSE stmt { $$ = criarNoIf($3, $5, $7); }
     | KW_WHILE LPAREN expr RPAREN stmt { $$ = criarNoWhile($3, $5); }
     | KW_FOR LPAREN for_init SEMICOLON for_cond SEMICOLON for_iter RPAREN stmt {
+        criarEscopoLocal();
         $$ = criarNoFor($3, $5, $7, $9);
+        destruirEscopoLocal();
     }
     | KW_SWITCH LPAREN expr RPAREN switch_body { $$ = criarNoSwitch($3, $5); }
     | compound_stmt                { $$ = $1; }
@@ -486,24 +502,24 @@ expr:
             $$ = criarNoChamadaFuncao($1, $3, s->tipo);
         }
     }
-    | IDENTIFIER OP_ASSIGN expr {
-        Simbolo *s = buscarSimbolo($1);
-        if (!s) {
-            yyerror("Identificador não declarado para atribuição.");
+    | expr OP_ASSIGN expr {
+        if ($1 == NULL || $1->tipo_no == NODE_ERROR) {
+            yyerror("Atribuição para expressão inválida.");
+            $$ = criarNoErro();
+        } else if ($1->tipo_no != NODE_IDENTIFIER &&
+                   $1->tipo_no != NODE_FIELD_ACCESS &&
+                   !($1->tipo_no == NODE_OPERATOR && $1->data.op_type == OP_INDEX_TYPE)) {
+            yyerror("Atribuição só é permitida para variáveis, campos ou elementos de array.");
+            $$ = criarNoErro();
+        } else if ($3 == NULL || $3->tipo_dado == TIPO_ERRO || !tiposCompativeis($1->tipo_dado, $3->tipo_dado)) {
+            fprintf(stderr,
+                    "Erro de tipo: Atribuição de tipo incompatível (tipo %s) com expressão (tipo %s) na linha %d.\n",
+                    nomeTipo($1->tipo_dado),
+                    nomeTipo($3 ? $3->tipo_dado : TIPO_ERRO),
+                    yylineno);
             $$ = criarNoErro();
         } else {
-            if ($3 == NULL || $3->tipo_dado == TIPO_ERRO || !tiposCompativeis(s->tipo, $3->tipo_dado)) {
-                fprintf(stderr,
-                        "Erro de tipo: Atribuição de tipo incompatível para '%s' (tipo %s) com expressao (tipo %s) na linha %d.\n",
-                        s->nome,
-                        nomeTipo(s->tipo),
-                        nomeTipo($3 ? $3->tipo_dado : TIPO_ERRO),
-                        yylineno);
-                $$ = criarNoErro();
-            } else {
-                $$ = criarNoOp(OP_ASSIGN_TYPE, criarNoId($1, s->tipo), $3);
-                s->linha_ultimo_uso = yylineno;
-            }
+            $$ = criarNoOp(OP_ASSIGN_TYPE, $1, $3);
         }
     }
     | expr DOT IDENTIFIER {
@@ -622,7 +638,14 @@ int main(int argc, char *argv[]) {
     }
 
     yyparse();
-    
-    gerarCodigoTs(raiz_programa, 0);
+
+    FILE *saida_ts = fopen("output.ts", "w");
+    if (!saida_ts) {
+        perror("Erro ao criar arquivo output.ts");
+        return 1;
+    }
+    gerarTypeScript(raiz_ast, saida_ts);
+    fclose(saida_ts);
+
     return 0;
 }

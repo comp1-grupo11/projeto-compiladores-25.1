@@ -57,9 +57,9 @@ test: $(TARGET)
 	done
 	@echo "\n🏁 Todos os testes concluídos\n"
 
-ir: $(TARGET)
-	@echo "\n🚧 Gerando código intermediário..."
-	./$(TARGET) > output.ts
+ir:
+	@echo "🚧 Gerando código intermediário..."
+	./parser $(FILE) > output.ts
 	@echo "\n📝 Código intermediário gerado em \033[1;36moutput.ts\033[0m\n"
 
 # Dependências especiais

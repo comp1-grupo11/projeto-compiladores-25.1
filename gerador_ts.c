@@ -1,13 +1,27 @@
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include "ast.h"
 
-void imprimirIndentacaoTs(int indent)
+static const char *ts_type(Tipo tipo)
 {
-    for (int i = 0; i < indent; i++)
-        printf("  ");
+    switch (tipo)
+    {
+    case TIPO_INT:
+    case TIPO_FLOAT:
+    case TIPO_DOUBLE:
+        return "number";
+    case TIPO_CHAR:
+    case TIPO_STRING:
+        return "string";
+    case TIPO_VOID:
+        return "void";
+    default:
+        return "any";
+    }
 }
 
-void gerarCodigoTs(NoAST *no, int indent)
+void gerarTypeScript(NoAST *no, FILE *saida)
 {
     if (!no)
         return;
@@ -15,92 +29,160 @@ void gerarCodigoTs(NoAST *no, int indent)
     switch (no->tipo_no)
     {
     case NODE_DECLARATION:
-        imprimirIndentacaoTs(indent);
-        printf("let %s", no->data.decl_info.nome_declaracao);
+        fprintf(saida, "let %s: %s", no->data.decl_info.nome_declaracao, ts_type(no->tipo_dado));
         if (no->data.decl_info.inicializacao_expr)
         {
-            printf(" = ");
-            gerarCodigoTs(no->data.decl_info.inicializacao_expr, 0);
+            fprintf(saida, " = ");
+            gerarTypeScript(no->data.decl_info.inicializacao_expr, saida);
         }
-        printf(";\n");
+        fprintf(saida, ";\n");
         break;
-
     case NODE_LITERAL:
         switch (no->tipo_dado)
         {
         case TIPO_INT:
-            printf("%d", no->data.literal.val_int);
+            fprintf(saida, "%d", no->data.literal.val_int);
             break;
         case TIPO_FLOAT:
-            printf("%f", no->data.literal.val_float);
+            fprintf(saida, "%f", no->data.literal.val_float);
             break;
         case TIPO_DOUBLE:
-            printf("%lf", no->data.literal.val_double);
+            fprintf(saida, "%lf", no->data.literal.val_double);
             break;
         case TIPO_CHAR:
-            printf("'%c'", no->data.literal.val_char);
+            fprintf(saida, "'%c'", no->data.literal.val_char);
             break;
         case TIPO_STRING:
-            printf("\"%s\"", no->data.literal.val_string);
+            fprintf(saida, "\"%s\"", no->data.literal.val_string);
             break;
         default:
-            printf("undefined");
+            fprintf(saida, "undefined");
+        }
+        break;
+    case NODE_IDENTIFIER:
+        fprintf(saida, "%s", no->data.nome_id);
+        break;
+    case NODE_OPERATOR:
+        gerarTypeScript(no->esquerda, saida);
+        switch (no->data.op_type)
+        {
+        case OP_ADD_TYPE:
+            fprintf(saida, " + ");
+            break;
+        case OP_SUB_TYPE:
+            fprintf(saida, " - ");
+            break;
+        case OP_MUL_TYPE:
+            fprintf(saida, " * ");
+            break;
+        case OP_DIV_TYPE:
+            fprintf(saida, " / ");
+            break;
+        case OP_ASSIGN_TYPE:
+            fprintf(saida, " = ");
+            break;
+        case OP_EQ_TYPE:
+            fprintf(saida, " == ");
+            break;
+        case OP_NE_TYPE:
+            fprintf(saida, " != ");
+            break;
+        case OP_GT_TYPE:
+            fprintf(saida, " > ");
+            break;
+        case OP_LT_TYPE:
+            fprintf(saida, " < ");
+            break;
+        case OP_GE_TYPE:
+            fprintf(saida, " >= ");
+            break;
+        case OP_LE_TYPE:
+            fprintf(saida, " <= ");
+            break;
+        default:
+            fprintf(saida, " /*op*/ ");
             break;
         }
+        gerarTypeScript(no->direita, saida);
         break;
-
-    case NODE_IDENTIFIER:
-        printf("%s", no->data.nome_id);
-        break;
-
-    case NODE_OPERATOR:
-        printf("(");
-        gerarCodigoTs(no->esquerda, 0);
-        printf(" %s ",
-               (no->data.op_type == OP_ADD_TYPE) ? "+" : (no->data.op_type == OP_SUB_TYPE)  ? "-"
-                                                     : (no->data.op_type == OP_MUL_TYPE)    ? "*"
-                                                     : (no->data.op_type == OP_DIV_TYPE)    ? "/"
-                                                     : (no->data.op_type == OP_ASSIGN_TYPE) ? "="
-                                                                                            : "?");
-        gerarCodigoTs(no->direita, 0);
-        printf(")");
-        break;
-
     case NODE_RETURN:
-        imprimirIndentacaoTs(indent);
-        printf("return ");
-        gerarCodigoTs(no->esquerda, 0);
-        printf(";\n");
+        fprintf(saida, "return ");
+        gerarTypeScript(no->esquerda, saida);
+        fprintf(saida, ";\n");
         break;
-
+    case NODE_FUNCTION_CALL:
+        fprintf(saida, "%s(", no->data.func_name);
+        for (NoAST *arg = no->esquerda; arg; arg = arg->proximo)
+        {
+            gerarTypeScript(arg, saida);
+            if (arg->proximo)
+                fprintf(saida, ", ");
+        }
+        fprintf(saida, ")");
+        break;
     case NODE_COMPOUND_STMT:
-        imprimirIndentacaoTs(indent);
-        printf("{\n");
-        gerarCodigoTs(no->esquerda, indent + 1);
-        imprimirIndentacaoTs(indent);
-        printf("}\n");
+        fprintf(saida, "{\n");
+        for (NoAST *stmt = no->esquerda; stmt; stmt = stmt->proximo)
+            gerarTypeScript(stmt, saida);
+        fprintf(saida, "}\n");
         break;
-
+    case NODE_FUNCTION_DEF:
+        fprintf(saida, "function %s(", no->data.func_name);
+        if (no->esquerda)
+        {
+            for (NoAST *param = no->esquerda; param; param = param->proximo)
+            {
+                fprintf(saida, "%s: %s", param->data.decl_info.nome_declaracao, ts_type(param->tipo_dado));
+                if (param->proximo)
+                    fprintf(saida, ", ");
+            }
+        }
+        fprintf(saida, "): %s {\n", ts_type(no->tipo_dado));
+        gerarTypeScript(no->direita, saida);
+        fprintf(saida, "}\n");
+        break;
     case NODE_IF:
-        imprimirIndentacaoTs(indent);
-        printf("if (");
-        gerarCodigoTs(no->esquerda, 0);
-        printf(")\n");
-        gerarCodigoTs(no->direita, indent + 1);
+        fprintf(saida, "if (");
+        gerarTypeScript(no->esquerda, saida);
+        fprintf(saida, ") {\n");
+        gerarTypeScript(no->direita, saida); // then block
+        fprintf(saida, "}");
         if (no->centro)
         {
-            imprimirIndentacaoTs(indent);
-            printf("else\n");
-            gerarCodigoTs(no->centro, indent + 1);
+            fprintf(saida, " else {\n");
+            gerarTypeScript(no->centro, saida); // else block
+            fprintf(saida, "}");
         }
+        fprintf(saida, "\n");
         break;
-
+    case NODE_FOR:
+        fprintf(saida, "for (");
+        if (no->esquerda)
+            gerarTypeScript(no->esquerda, saida); // init
+        fprintf(saida, "; ");
+        if (no->direita)
+            gerarTypeScript(no->direita, saida); // condition
+        fprintf(saida, "; ");
+        if (no->centro)
+            gerarTypeScript(no->centro, saida); // iteration
+        fprintf(saida, ") {\n");
+        if (no->proximo && no->proximo->tipo_no != NODE_COMPOUND_STMT)
+        {
+            fprintf(saida, "{\n");
+            gerarTypeScript(no->proximo, saida);
+            fprintf(saida, "}\n");
+        }
+        else if (no->proximo)
+        {
+            gerarTypeScript(no->proximo, saida);
+        }
+        fprintf(saida, "}\n");
+        break;
     default:
-        imprimirIndentacaoTs(indent);
-        printf("// [Tipo de nó não implementado: %d]\n", no->tipo_no);
+        fprintf(saida, "// [Tipo de nó não implementado: %d]\n", no->tipo_no);
         break;
     }
 
     if (no->proximo)
-        gerarCodigoTs(no->proximo, indent);
+        gerarTypeScript(no->proximo, saida);
 }

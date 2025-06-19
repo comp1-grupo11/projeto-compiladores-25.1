@@ -2,6 +2,10 @@
 #include <stdlib.h>
 #include <string.h>
 #include "ast.h"
+#include <stddef.h>
+
+// Protótipo da função auxiliar para alocar um nó base
+static NoAST *alocarNoAST(NodeType tipo_no);
 
 extern int yylineno; // Para obter o número da linha atual
 
@@ -12,6 +16,18 @@ void imprimirIndentacao(int indent)
         printf("    ");
 }
 
+// Nova função de criação de nó de declaração (modelo sugerido)
+NoAST *criarNoDeclaracao(Tipo tipo, char *nome, NoAST *init)
+{
+    NoAST *no = alocarNoAST(NODE_DECLARATION);
+    no->tipo_dado = tipo;
+    no->data.decl_info.nome_declaracao = strdup(nome);
+    if (init)
+    {
+        no->direita = init;
+    }
+    return no;
+}
 // Versão indentada da impressão da AST
 void imprimirASTComIndent(NoAST *no, int indent)
 {
@@ -218,31 +234,6 @@ void imprimirASTComIndent(NoAST *no, int indent)
         imprimirIndentacao(indent);
         printf("[TIPO DE NÓ DESCONHECIDO]");
         break;
-    }
-}
-
-const char *nomeTipo(Tipo tipo)
-{
-    switch (tipo)
-    {
-    case TIPO_INT:
-        return "int";
-    case TIPO_FLOAT:
-        return "float";
-    case TIPO_DOUBLE:
-        return "double";
-    case TIPO_CHAR:
-        return "char";
-    case TIPO_STRING:
-        return "string";
-    case TIPO_VOID:
-        return "void";
-    case TIPO_OBJETO:
-        return "struct";
-    case TIPO_ERRO:
-        return "erro";
-    default:
-        return "desconhecido";
     }
 }
 
@@ -595,7 +586,17 @@ NoAST *criarNoAcessoCampo(NoAST *struct_expr, char *campo)
     NoAST *no = alocarNoAST(NODE_FIELD_ACCESS);
     no->esquerda = struct_expr;
     no->direita = NULL;
-    no->tipo_dado = TIPO_ERRO;
+    // Tenta inferir o tipo do campo a partir do struct (simples)
+    if (struct_expr && struct_expr->tipo_dado == TIPO_OBJETO)
+    {
+        // Aqui você pode buscar o tipo real do campo na tabela de símbolos do struct
+        // Por enquanto, marque como int (ou outro tipo padrão)
+        no->tipo_dado = TIPO_INT; // Troque por busca real se possível
+    }
+    else
+    {
+        no->tipo_dado = TIPO_INT; // fallback para int
+    }
     strncpy(no->data.field_info.campo_nome, campo, sizeof(no->data.field_info.campo_nome) - 1);
     no->data.field_info.campo_nome[sizeof(no->data.field_info.campo_nome) - 1] = '\0';
     return no;
@@ -825,5 +826,47 @@ void liberarAST(NoAST *no)
 
 int tiposCompativeis(Tipo t1, Tipo t2)
 {
-    return t1 == t2;
+    // Permite atribuição entre tipos numéricos compatíveis
+    if (t1 == t2)
+        return 1;
+    // Permite promoção: int -> float/double, float -> double
+    if ((t1 == TIPO_DOUBLE && (t2 == TIPO_FLOAT || t2 == TIPO_INT)) ||
+        (t1 == TIPO_FLOAT && t2 == TIPO_INT))
+        return 1;
+    return 0;
+}
+
+NoAST *criarNoFuncao(char *nome, Tipo tipo_retorno, NoAST *params, NoAST *corpo)
+{
+    NoAST *no = alocarNoAST(NODE_FUNCTION_DEF);
+    no->data.func_name = strdup(nome);
+    no->tipo_dado = tipo_retorno;
+    no->esquerda = params;
+    no->direita = corpo;
+    no->proximo = NULL;
+    return no;
+}
+const char *nomeTipo(Tipo tipo)
+{
+    switch (tipo)
+    {
+    case TIPO_INT:
+        return "int";
+    case TIPO_FLOAT:
+        return "float";
+    case TIPO_DOUBLE:
+        return "double";
+    case TIPO_CHAR:
+        return "char";
+    case TIPO_STRING:
+        return "string";
+    case TIPO_VOID:
+        return "void";
+    case TIPO_OBJETO:
+        return "struct";
+    case TIPO_ERRO:
+        return "erro";
+    default:
+        return "desconhecido";
+    }
 }
