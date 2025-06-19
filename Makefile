@@ -29,7 +29,7 @@ $(TARGET): $(OBJ)
 
 parser.tab.c parser.tab.h: parser.y ast.h
 	@echo "\n🔄 Gerando parser com Bison..."
-	$(BISON) -d parser.y
+	$(BISON) -d parser.y -Wcounterexamples
 
 lex.yy.c: lexico.l parser.tab.h
 	@echo "\n🔄 Gerando lexer com Flex..."

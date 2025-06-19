@@ -4,9 +4,10 @@
 #include "ast.h"
 #include "tabela.h"
 
-#define TAM 211
-
 TabelaSimbolos *escopo_atual = NULL;
+
+int nivel_escopo = 0; // Variável global para controlar o nível do escopo
+TipoEscopo tipo_escopo_atual = TIPO_ESCOPO_GLOBAL; // Variável global para o tipo de escopo atual
 
 unsigned hash(char *s)
 {
@@ -27,12 +28,15 @@ void criarEscopoLocal()
     memset(novo->tabela, 0, sizeof(novo->tabela));
     novo->anterior = escopo_atual;
     escopo_atual = novo;
+    nivel_escopo++;
 }
 
 void destruirEscopoLocal()
 {
     if (!escopo_atual)
         return;
+
+    imprimirTabela();
     for (int i = 0; i < TAM; i++)
     {
         Simbolo *s = escopo_atual->tabela[i];
@@ -46,10 +50,11 @@ void destruirEscopoLocal()
     TabelaSimbolos *ant = escopo_atual->anterior;
     free(escopo_atual);
     escopo_atual = ant;
+    nivel_escopo--;
 }
 
 void inserirSimbolo(char *nome, Tipo tipo, CategoriaSimbolo categoria, int tamanho_bytes,
-                    int dimensao, int linha_declaracao, int endereco, Escopo escopo)
+                    int dimensao, int linha_declaracao, int endereco, int id_escopo, TipoEscopo tipo_escopo)
 {
     if (!escopo_atual)
         criarEscopoLocal();
@@ -72,7 +77,8 @@ void inserirSimbolo(char *nome, Tipo tipo, CategoriaSimbolo categoria, int taman
     novoSimbolo->linha_declaracao = linha_declaracao;
     novoSimbolo->linha_ultimo_uso = -1;
     novoSimbolo->endereco = endereco;
-    novoSimbolo->escopo = escopo;
+    novoSimbolo->id_escopo = id_escopo;
+    novoSimbolo->tipo_escopo = tipo_escopo;
 
     // Adiciona o novo símbolo ao início da lista encadeada na posição da hash
     novoSimbolo->proximo = escopo_atual->tabela[i];
@@ -111,9 +117,9 @@ Simbolo *buscarSimboloNoEscopoAtual(char *nome)
 void imprimirTabela()
 {
     printf("\n--- TABELA DE SIMBOLOS ---\n");
-    printf("%-20s %-10s %-10s %-10s %-8s %-8s %-8s %-8s %-8s\n",
-           "Nome", "Tipo", "Categoria", "Escopo", "Tam", "Dim", "Decl", "Uso", "Addr");
-    printf("-------------------------------------------------------------------------------------------------\n");
+    printf("%-20s %-10s %-10s %-10s %-8s %-8s %-8s %-8s %-8s %-8s\n",
+           "Nome", "Tipo", "Categoria", "Escopo", "IDEscopo", "Tam", "Dim", "Decl", "Uso", "Addr");
+    printf("-------------------------------------------------------------------------------------------------------------\n");
 
     TabelaSimbolos *esc = escopo_atual;
     while (esc)
@@ -175,27 +181,43 @@ void imprimirTabela()
                 }
 
                 char escopo_str[10];
-                // Convertendo o Escopo para string
-                switch (s->escopo)
+                // Convertendo o TipoEscopo para string
+                switch (s->tipo_escopo)
                 {
-                case ESCOPO_GLOBAL:
+                case TIPO_ESCOPO_GLOBAL:
                     strcpy(escopo_str, "GLOBAL");
                     break;
-                case ESCOPO_LOCAL:
-                    strcpy(escopo_str, "LOCAL");
+                case TIPO_ESCOPO_FUNCAO:
+                    strcpy(escopo_str, "FUNCAO");
+                    break;
+                case TIPO_ESCOPO_IF:
+                    strcpy(escopo_str, "IF");
+                    break;
+                case TIPO_ESCOPO_ELSE:
+                    strcpy(escopo_str, "ELSE");
+                    break;
+                case TIPO_ESCOPO_FOR:
+                    strcpy(escopo_str, "FOR");
+                    break;
+                case TIPO_ESCOPO_WHILE:
+                    strcpy(escopo_str, "WHILE");
+                    break;
+                case TIPO_ESCOPO_SWITCH:
+                    strcpy(escopo_str, "SWITCH");
                     break;
                 default:
                     strcpy(escopo_str, "???");
                     break;
                 }
 
-                printf("%-20s %-10s %-10s %-10s %-8d %-8d %-8d %-8d %-8d\n",
+                printf("%-20s %-10s %-10s %-10s %-8d %-8d %-8d %-8d %-8d %-8d\n",
                        s->nome, tipo_str, categoria_str, escopo_str,
+                       s->id_escopo, // <-- Aqui imprime o id do escopo
                        s->tamanho_bytes, s->dimensao,
                        s->linha_declaracao, s->linha_ultimo_uso, s->endereco);
             }
         }
         esc = esc->anterior;
     }
-    printf("-------------------------------------------------------------------------------------------------\n");
+    printf("-------------------------------------------------------------------------------------------------------------\n");
 }
