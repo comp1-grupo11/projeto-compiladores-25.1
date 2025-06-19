@@ -19,6 +19,8 @@ void gerarTypeScript(NoAST *no, FILE *saida);
 
 Tipo current_decl_type;
 
+int temErroSemantico = 0;
+
 void gerarCodigoTs(NoAST *no, int indent);
 NoAST *raiz_programa;
 NoAST *raiz_ast = NULL;
@@ -647,21 +649,33 @@ int main(int argc, char *argv[]) {
     criarEscopoLocal(); // escopo global
     inicializarTabelaSimbolosGlobais();
 
-    if (argc > 1) {
-        yyin = fopen(argv[1], "r");
-        if (!yyin) {
-            perror("Erro ao abrir arquivo");
-            return 1;
-        }
+    if (argc < 2) {
+        fprintf(stderr, "Uso: %s <arquivo_entrada.c> [arquivo_saida.ts]\n", argv[0]);
+        return 1;
+    }
+
+    yyin = fopen(argv[1], "r");
+    if (!yyin) {
+        perror("Erro ao abrir arquivo de entrada");
+        return 1;
     }
 
     yyparse();
 
-    FILE *saida_ts = fopen("output.ts", "w");
-    if (!saida_ts) {
-        perror("Erro ao criar arquivo output.ts");
+    extern int temErroSemantico;
+    if (temErroSemantico) {
+        fprintf(stderr, "Código TypeScript não gerado devido a erro(s) semântico(s).\n");
         return 1;
     }
+
+    const char *outputPath = (argc > 2) ? argv[2] : "output.ts";
+
+    FILE *saida_ts = fopen(outputPath, "w");
+    if (!saida_ts) {
+        perror("Erro ao criar arquivo de saída");
+        return 1;
+    }
+
     gerarTypeScript(raiz_ast, saida_ts);
     fclose(saida_ts);
 

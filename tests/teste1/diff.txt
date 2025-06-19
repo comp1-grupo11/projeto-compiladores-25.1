@@ -1,0 +1,71 @@
+0a1,8
+> const MAX_SIZE: number = 100;
+> 
+> interface Pessoa {
+>   id: number;
+>   nome: string;
+>   altura: number;
+> }
+> 
+2,3c10,11
+< let ano_atual: number = 2024;
+< return "ano_atual - ano_nascimento";
+---
+>   const ano_atual: number = 2024;
+>   return ano_atual - ano_nascimento;
+7,21c17,33
+< let numeros: number = 100;
+< let valores: number;
+< let letra: string = 'A';
+< let mensagem: string = "Teste de compilacao";
+< let pi: number = 3.141593;
+< let usuario: any = // [Tipo de nó não implementado: 22]
+< ;
+< for (// [Tipo de nó não implementado: 3]
+<  i < 5; i /*op*/ ) {
+< if (numeros /*op*/ i /*op*/ 2 == 0) {
+< printf("Par: %d
+< "numeros /*op*/ i, numeros /*op*/ i)}
+< else {
+< printf("Impar: %d
+< "numeros /*op*/ i, numeros /*op*/ i)}
+---
+>   const numeros: number[] = [1, 2, 3, 4, 5];
+>   const valores: number[] = [1.5, 2.7, 3.14];
+>   const letra: string = "A";
+>   const mensagem: string = "Teste de compilacao";
+>   const pi: number = 3.14159265359;
+> 
+>   const usuario: Pessoa = {
+>     id: 123,
+>     nome: "Joao",
+>     altura: 1.75,
+>   };
+> 
+>   for (let i = 0; i < 5; i++) {
+>     if (numeros[i] % 2 === 0) {
+>       console.log(`Par: ${numeros[i]}`);
+>     } else {
+>       console.log(`Impar: ${numeros[i]}`); // Comentário teste
+23,24c35,45
+< let idade: number = calcular_idade(1990);
+< // [Tipo de nó não implementado: 9]
+---
+>   }
+> 
+>   const idade: number = calcular_idade(1990);
+>   switch (idade) {
+>     case 34 /*Comentário teste 2*/:
+>       console.log("Idade correta!");
+>       break;
+>     default:
+>       console.log(`Idade calculada: ${idade}`);
+>   }
+> 
+26c47,50
+< x = x + 5x /*op*/ return 0;
+---
+>   x += 5;
+>   x--;
+> 
+>   return 0;

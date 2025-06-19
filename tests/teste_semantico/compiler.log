@@ -1,0 +1,8 @@
+Erro sintático linha 3: Identificador não declarado.
+Erro sintático linha 3: Atribuição para expressão inválida.
+Erro sintático linha 10: Redeclaração de variável.
+Erro de tipo: Atribuição de tipo incompatível (tipo int) com expressão (tipo string) na linha 17.
+Erro sintático linha 31: Identificador não declarado.
+Erro sintático linha 31: Atribuição para expressão inválida.
+Erro sintático linha 37: Identificador não declarado.
+Erro sintático linha 37: Atribuição para expressão inválida.

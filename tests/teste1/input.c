@@ -1,7 +1,7 @@
 #include <stdio.h>
 
 #define MAX_SIZE 100
-#define string char*
+#define string char *
 
 struct Pessoa
 {
@@ -25,7 +25,7 @@ int main()
     char letra = 'A';
     char mensagem[] = "Teste de compilacao";
     double pi = 3.14159265359;
-    //int i = 1;
+    // int i = 1;
 
     struct Pessoa usuario = {
         .id = "123",
