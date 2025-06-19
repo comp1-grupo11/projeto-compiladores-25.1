@@ -1,4 +1,4 @@
-function soma(a: number): number {
+function soma(a: number, b: number): number {
 return a + b;
 }
 function main(): number {
@@ -15,7 +15,6 @@ for (let i: number = 0;
 {
 resultado = resultado + i}
 return resultado;
-}
 {
 resultado = resultado + i}
 return resultado;

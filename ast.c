@@ -841,7 +841,26 @@ NoAST *criarNoFuncao(char *nome, Tipo tipo_retorno, NoAST *params, NoAST *corpo)
     NoAST *no = alocarNoAST(NODE_FUNCTION_DEF);
     no->data.func_name = strdup(nome);
     no->tipo_dado = tipo_retorno;
-    no->esquerda = params;
+    no->esquerda = NULL; // Inicialmente sem parâmetros
+    // Acumular lista ligada de parâmetros em esquerda
+    NoAST *param = params;
+    while (param)
+    {
+        NoAST *next = param->proximo;
+        param->proximo = NULL;
+        if (!no->esquerda)
+        {
+            no->esquerda = param;
+        }
+        else
+        {
+            NoAST *atual = no->esquerda;
+            while (atual->proximo)
+                atual = atual->proximo;
+            atual->proximo = param;
+        }
+        param = next;
+    }
     no->direita = corpo;
     no->proximo = NULL;
     return no;

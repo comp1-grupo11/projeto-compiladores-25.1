@@ -132,6 +132,8 @@ function:
         criarEscopoLocal();
         destruirEscopoLocal();
         $$ = criarNoFuncao($2, $1, $4, $7);
+        /* Garante que todos os parâmetros estejam ligados em $$->esquerda */
+        $$->esquerda = $4;
     }
 ;
 
@@ -159,6 +161,17 @@ params:
 param_list:
     param_decl
     | param_list COMMA param_decl
+        {
+            NoAST *atual = $1;
+            if (atual == NULL) {
+                $$ = $3;
+            } else {
+                while (atual->proximo)
+                    atual = atual->proximo;
+                atual->proximo = $3;
+                $$ = $1;
+            }
+        }
 ;
 
 param_decl:

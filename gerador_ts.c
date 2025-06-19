@@ -128,14 +128,13 @@ void gerarTypeScript(NoAST *no, FILE *saida)
         break;
     case NODE_FUNCTION_DEF:
         fprintf(saida, "function %s(", no->data.func_name);
-        if (no->esquerda)
+        NoAST *paramAtual = no->esquerda;
+        while (paramAtual)
         {
-            for (NoAST *param = no->esquerda; param; param = param->proximo)
-            {
-                fprintf(saida, "%s: %s", param->data.decl_info.nome_declaracao, ts_type(param->tipo_dado));
-                if (param->proximo)
-                    fprintf(saida, ", ");
-            }
+            fprintf(saida, "%s: %s", paramAtual->data.decl_info.nome_declaracao, ts_type(paramAtual->tipo_dado));
+            if (paramAtual->proximo)
+                fprintf(saida, ", ");
+            paramAtual = paramAtual->proximo;
         }
         fprintf(saida, "): %s {\n", ts_type(no->tipo_dado));
         gerarTypeScript(no->direita, saida);
@@ -168,15 +167,12 @@ void gerarTypeScript(NoAST *no, FILE *saida)
         fprintf(saida, ") {\n");
         if (no->proximo && no->proximo->tipo_no != NODE_COMPOUND_STMT)
         {
-            fprintf(saida, "{\n");
             gerarTypeScript(no->proximo, saida);
-            fprintf(saida, "}\n");
         }
         else if (no->proximo)
         {
             gerarTypeScript(no->proximo, saida);
         }
-        fprintf(saida, "}\n");
         break;
     default:
         fprintf(saida, "// [Tipo de nó não implementado: %d]\n", no->tipo_no);
