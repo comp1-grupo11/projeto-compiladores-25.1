@@ -71,6 +71,7 @@ void imprimirASTComIndent(NoAST *no, int indent)
                                                          : (no->data.op_type == OP_SUB_ASSIGN_TYPE) ? "-="
                                                          : (no->data.op_type == OP_MUL_ASSIGN_TYPE) ? "*="
                                                          : (no->data.op_type == OP_DIV_ASSIGN_TYPE) ? "/="
+                                                         : (no->data.op_type == OP_MOD_ASSIGN_TYPE) ? "%="
                                                                                                     : "?");
             imprimirASTComIndent(no->direita, indent);
             printf(")");
@@ -170,10 +171,49 @@ void imprimirASTComIndent(NoAST *no, int indent)
             imprimirASTComIndent(no->proximo, indent + 1);
         break;
 
+    case NODE_PROGRAM:
+        imprimirASTComIndent(no->esquerda, indent);
+        if (no->proximo)
+            imprimirASTComIndent(no->proximo, indent);
+        break;
+
+    case NODE_PARAM_LIST:
+    case NODE_ARG_LIST:
+        imprimirASTComIndent(no->esquerda, indent);
+        if (no->proximo)
+            imprimirASTComIndent(no->proximo, indent);
+        break;
+
+    case NODE_FIELD_ASSIGN:
+        imprimirIndentacao(indent);
+        if (no->esquerda)
+        {
+            imprimirASTComIndent(no->esquerda, 0);
+            printf(".");
+        }
+        printf("%s = ", no->data.field_info.campo_nome);
+        imprimirASTComIndent(no->direita, 0);
+        printf(";");
+        break;
+
+    case NODE_FIELD_ACCESS:
+        imprimirIndentacao(indent);
+        if (no->esquerda)
+        {
+            imprimirASTComIndent(no->esquerda, 0);
+            printf(".");
+        }
+        printf("%s", no->data.field_info.campo_nome);
+        break;
+
     case NODE_COMPOUND_STMT:
         imprimirIndentacao(indent);
         printf("{\n");
-        imprimirASTComIndent(no->esquerda, indent + 1);
+        for (NoAST *stmt = no->esquerda; stmt; stmt = stmt->proximo)
+        {
+            imprimirASTComIndent(stmt, indent + 1);
+            printf("\n");
+        }
         imprimirIndentacao(indent);
         printf("}\n");
         break;
@@ -193,6 +233,21 @@ void imprimirASTComIndent(NoAST *no, int indent)
         printf("%s(", no->data.func_name);
         imprimirASTComIndent(no->esquerda, 0);
         printf(")");
+        break;
+
+    case NODE_FUNCTION_DEF:
+        imprimirIndentacao(indent);
+        printf("function %s(", no->data.func_name);
+        NoAST *param = no->esquerda;
+        while (param)
+        {
+            printf("%s", param->data.decl_info.nome_declaracao);
+            if (param->proximo)
+                printf(", ");
+            param = param->proximo;
+        }
+        printf(")\n");
+        imprimirASTComIndent(no->direita, indent + 1);
         break;
 
     case NODE_SWITCH:
@@ -293,33 +348,45 @@ NoAST *criarNoReturn(NoAST *expr_retorno)
     return no;
 }
 
-// Implementação da função de criação de nó if-else
+// Exemplo para if
 NoAST *criarNoIf(NoAST *condicao, NoAST *bloco_then, NoAST *bloco_else)
 {
     NoAST *no = alocarNoAST(NODE_IF);
-    no->esquerda = condicao;   // A condição é o filho esquerdo
-    no->direita = bloco_then;  // O bloco 'then' é o filho direito
-    no->centro = bloco_else;   // O bloco 'else' (pode ser NULL)
-    no->tipo_dado = TIPO_VOID; // 'if' geralmente não tem um tipo de dado de retorno
+    no->esquerda = condicao;
+    no->direita = bloco_then;
+    no->centro = bloco_else;
+    no->tipo_dado = TIPO_VOID;
+    if (bloco_then && bloco_then->tipo_no == NODE_COMPOUND_STMT)
+        bloco_then->pai_controlador = no;
+    if (bloco_else && bloco_else->tipo_no == NODE_COMPOUND_STMT)
+        bloco_else->pai_controlador = no;
     return no;
 }
 
-// Implementação da função de criação de nó while
+// Exemplo para while
 NoAST *criarNoWhile(NoAST *condicao, NoAST *bloco)
 {
     NoAST *no = alocarNoAST(NODE_WHILE);
-    no->esquerda = condicao; // A condição é o filho esquerdo
-    no->direita = bloco;     // O bloco do 'while' é o filho direito
+    no->esquerda = condicao;
+    no->direita = bloco;
     no->tipo_dado = TIPO_VOID;
+    if (bloco && bloco->tipo_no == NODE_COMPOUND_STMT)
+        bloco->pai_controlador = no;
     return no;
 }
 
-// Implementação da função de criação de nó for
-// Estrutura correta:
-//   esquerda: inicialização (ex: let i = 0)
-//   direita: condição (ex: i < 3)
-//   centro: incremento (ex: i = i + 1)
-//   proximo: corpo do for (bloco de comandos)
+// Exemplo para switch
+NoAST *criarNoSwitch(NoAST *expr_controle, NoAST *corpo_switch)
+{
+    NoAST *no = alocarNoAST(NODE_SWITCH);
+    no->esquerda = expr_controle;
+    no->direita = corpo_switch;
+    no->tipo_dado = TIPO_VOID;
+    if (corpo_switch && corpo_switch->tipo_no == NODE_COMPOUND_STMT)
+        corpo_switch->pai_controlador = no;
+    return no;
+}
+
 NoAST *criarNoFor(NoAST *init, NoAST *cond, NoAST *inc, NoAST *corpo)
 {
     NoAST *no = alocarNoAST(NODE_FOR);
@@ -327,44 +394,8 @@ NoAST *criarNoFor(NoAST *init, NoAST *cond, NoAST *inc, NoAST *corpo)
     no->direita = cond;
     no->centro = inc;
     no->proximo = corpo;
-    return no;
-}
-
-NoAST *criarNoSwitchBody(NoAST *case_list_head, NoAST *default_node)
-{
-    NoAST *no = alocarNoAST(NODE_SWITCH_BODY);
-    no->esquerda = case_list_head; // A cabeça da lista de nós NODE_CASE
-    no->direita = default_node;    // O nó NODE_DEFAULT (pode ser NULL)
-    no->tipo_dado = TIPO_VOID;
-    return no;
-}
-
-// Cria um nó para um 'case' individual
-NoAST *criarNoCase(NoAST *case_expr, NoAST *statement_list)
-{
-    NoAST *no = alocarNoAST(NODE_CASE);
-    no->esquerda = case_expr;     // A expressão do case (ex: 10, 'A')
-    no->direita = statement_list; // A lista de comandos dentro do case
-    no->tipo_dado = TIPO_VOID;
-    return no;
-}
-
-// Cria um nó para o 'default'
-NoAST *criarNoDefault(NoAST *statement_list)
-{
-    NoAST *no = alocarNoAST(NODE_DEFAULT);
-    no->esquerda = statement_list; // A lista de comandos dentro do default
-    no->tipo_dado = TIPO_VOID;
-    return no;
-}
-
-// Função para criar um nó de switch
-NoAST *criarNoSwitch(NoAST *expr_controle, NoAST *corpo_switch)
-{
-    NoAST *no = alocarNoAST(NODE_SWITCH);
-    no->esquerda = expr_controle; // A expressão de controle (do parêntese)
-    no->direita = corpo_switch;   // O nó que representa o corpo do switch (o que 'switch_body' retorna)
-    no->tipo_dado = TIPO_VOID;
+    if (corpo && corpo->tipo_no == NODE_COMPOUND_STMT)
+        corpo->pai_controlador = no;
     return no;
 }
 
@@ -611,6 +642,7 @@ void imprimirNoAST(NoAST *no, FILE *out)
                                                           : (no->data.op_type == OP_SUB_ASSIGN_TYPE) ? "-="
                                                           : (no->data.op_type == OP_MUL_ASSIGN_TYPE) ? "*="
                                                           : (no->data.op_type == OP_DIV_ASSIGN_TYPE) ? "/="
+                                                          : (no->data.op_type == OP_MOD_ASSIGN_TYPE) ? "%="
                                                                                                      : "?");
             imprimirNoAST(no->direita, out);
             fprintf(out, ")");
@@ -812,6 +844,7 @@ void imprimirAST(NoAST *no)
                                                          : (no->data.op_type == OP_SUB_ASSIGN_TYPE) ? "-="
                                                          : (no->data.op_type == OP_MUL_ASSIGN_TYPE) ? "*="
                                                          : (no->data.op_type == OP_DIV_ASSIGN_TYPE) ? "/="
+                                                         : (no->data.op_type == OP_MOD_ASSIGN_TYPE) ? "%="
                                                                                                     : "?");
             imprimirAST(no->direita);
             printf(")");
@@ -1011,26 +1044,7 @@ NoAST *criarNoFuncao(char *nome, Tipo tipo_retorno, NoAST *params, NoAST *corpo)
     NoAST *no = alocarNoAST(NODE_FUNCTION_DEF);
     no->data.func_name = strdup(nome);
     no->tipo_dado = tipo_retorno;
-    no->esquerda = NULL; // Inicialmente sem parâmetros
-    // Acumular lista ligada de parâmetros em esquerda
-    NoAST *param = params;
-    while (param)
-    {
-        NoAST *next = param->proximo;
-        param->proximo = NULL;
-        if (!no->esquerda)
-        {
-            no->esquerda = param;
-        }
-        else
-        {
-            NoAST *atual = no->esquerda;
-            while (atual->proximo)
-                atual = atual->proximo;
-            atual->proximo = param;
-        }
-        param = next;
-    }
+    no->esquerda = params; // já é uma lista encadeada
     no->direita = corpo;
     no->proximo = NULL;
     return no;
@@ -1058,4 +1072,46 @@ const char *nomeTipo(Tipo tipo)
     default:
         return "desconhecido";
     }
+}
+
+NoAST *criarNoSwitchBody(NoAST *case_list_head, NoAST *default_node)
+{
+    NoAST *no = alocarNoAST(NODE_SWITCH_BODY);
+    no->esquerda = case_list_head;
+    no->direita = default_node;
+    return no;
+}
+
+NoAST *criarNoCase(NoAST *case_expr, NoAST *statement_list)
+{
+    NoAST *no = alocarNoAST(NODE_CASE);
+    no->esquerda = case_expr;
+    no->direita = statement_list;
+    return no;
+}
+
+NoAST *criarNoDefault(NoAST *statement_list)
+{
+    NoAST *no = alocarNoAST(NODE_DEFAULT);
+    no->esquerda = statement_list;
+    return no;
+}
+
+NoAST *removerNoDaLista(NoAST *head, NoAST *alvo)
+{
+    if (!head)
+        return NULL;
+    if (head == alvo)
+        return head->proximo;
+    NoAST *atual = head;
+    while (atual->proximo)
+    {
+        if (atual->proximo == alvo)
+        {
+            atual->proximo = alvo->proximo;
+            break;
+        }
+        atual = atual->proximo;
+    }
+    return head;
 }

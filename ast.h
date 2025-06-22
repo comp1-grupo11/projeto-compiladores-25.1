@@ -118,6 +118,7 @@ typedef struct NoAST
     struct NoAST *centro;
     struct NoAST *proximo;
     struct NoAST *parametros;
+    struct NoAST *pai_controlador; // aponta para o comando de controle (for/while/if/switch) que é dono deste bloco
 
 } NoAST;
 
@@ -131,6 +132,7 @@ NoAST *criarNoListaParametros(NoAST *param, NoAST *proximo_param);
 NoAST *criarNoParametro(Tipo tipo, char *nome);
 NoAST *criarNoString(char *val);
 NoAST *criarNoErro();
+NoAST *removerNoDaLista(NoAST *head, NoAST *alvo);
 
 // Funções para comandos (statements)
 NoAST *criarNoDeclaracaoVar(char *nome, Tipo tipo_declarado, NoAST *inicializacao_expr);
@@ -154,6 +156,7 @@ NoAST *criarNoFuncao(char *nome, Tipo tipo_retorno, NoAST *params, NoAST *corpo)
 // Funções de manipulação da AST
 void imprimirAST(NoAST *no);
 void liberarAST(NoAST *no);
+NoAST *removerNoDaLista(NoAST *head, NoAST *alvo);
 int tiposCompativeis(Tipo t1, Tipo t2);
 
 #endif // AST_H

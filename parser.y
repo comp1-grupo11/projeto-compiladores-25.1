@@ -5,6 +5,7 @@
 #include <stddef.h>
 #include "ast.h"
 #include "tabela.h"
+#include "gerador_ts.h"
 
 extern int yylex();
 extern int yyparse();
@@ -15,7 +16,7 @@ extern int yylineno;
 void yyerror(const char *s);
 void criarEscopoLocal(void);
 void destruirEscopoLocal(void);
-void gerarTypeScript(NoAST *no, FILE *saida);
+void gerarTypeScript(NoAST *no, FILE *saida, VarDecl **decls, int ident);
 
 Tipo current_decl_type;
 
@@ -134,9 +135,8 @@ function:
         inserirSimbolo($2, $1, FUNCAO, 0, -1, yylineno, 0, ESCOPO_GLOBAL);
         criarEscopoLocal();
         destruirEscopoLocal();
-        $$ = criarNoFuncao($2, $1, $4, $7);
-        /* Garante que todos os parâmetros estejam ligados em $$->esquerda */
-        $$->esquerda = $4;
+        NoAST *bloco = criarNoCompoundStmt($7);
+        $$ = criarNoFuncao($2, $1, $4, bloco);
     }
 ;
 
@@ -185,13 +185,31 @@ param_decl:
 ;
 
 compound_stmt:
-    LBRACE { criarEscopoLocal(); } stmt_list RBRACE { destruirEscopoLocal(); $$ = criarNoCompoundStmt($3); }
+    LBRACE { criarEscopoLocal(); } stmt_list RBRACE {
+        destruirEscopoLocal();
+        // Remover blocos que são corpo de comandos de controle
+        NoAST *lista = $3;
+        NoAST *atual = lista;
+        while (atual) {
+            if (atual->tipo_no == NODE_COMPOUND_STMT && atual->pai_controlador) {
+                lista = removerNoDaLista(lista, atual);
+                // Não avance o ponteiro, pois já pulou o nó
+            }
+            atual = atual->proximo;
+        }
+        $$ = criarNoCompoundStmt(lista);
+    }
 ;
 
 stmt_list:
     /* vazio */ { $$ = NULL; }
     | stmt_list stmt {
-        if ($2 == NULL) {
+        if (
+            $2 && $2->tipo_no == NODE_COMPOUND_STMT &&
+            $2->pai_controlador
+        ) {
+            $$ = $1;
+        } else if ($2 == NULL) {
             $$ = $1;
         } else if ($1 == NULL) {
             $$ = $2;
@@ -207,7 +225,8 @@ stmt_list:
 ;
 
 stmt:
-    expr SEMICOLON                 { $$ = $1; }
+    var_decl SEMICOLON           { $$ = $1; }
+    | expr SEMICOLON             { $$ = $1; }
     | KW_RETURN expr SEMICOLON     { $$ = criarNoReturn($2); }
     | KW_IF LPAREN expr RPAREN stmt %prec IF_WITHOUT_ELSE { $$ = criarNoIf($3, $5, NULL); }
     | KW_IF LPAREN expr RPAREN stmt KW_ELSE stmt { $$ = criarNoIf($3, $5, $7); }
@@ -215,14 +234,17 @@ stmt:
     | iteration_stmt               { $$ = $1; }
     | KW_SWITCH LPAREN expr RPAREN switch_body { $$ = criarNoSwitch($3, $5); }
     | compound_stmt                { $$ = $1; }
-    | var_decl SEMICOLON           { $$ = $1; }
     | KW_BREAK SEMICOLON           { $$ = criarNoBreak(); }
     | KW_CONTINUE SEMICOLON        { $$ = criarNoContinue(); }
 
 iteration_stmt:
     KW_FOR LPAREN for_init SEMICOLON for_cond SEMICOLON for_iter RPAREN stmt {
         criarEscopoLocal();
-        $$ = criarNoFor($3, $5, $7, $9);
+        NoAST *bloco = $9;
+        NoAST *no_for = criarNoFor($3, $5, $7, bloco);
+        if (bloco && bloco->tipo_no == NODE_COMPOUND_STMT)
+            bloco->pai_controlador = no_for;
+        $$ = no_for;
         destruirEscopoLocal();
     }
 ;
@@ -676,7 +698,10 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    gerarTypeScript(raiz_ast, saida_ts);
+    // imprimirASTComIndent(raiz_ast, 0);
+
+    VarDecl *decls = NULL;
+    gerarTypeScript(raiz_ast, saida_ts, &decls, 0);
     fclose(saida_ts);
 
     return 0;

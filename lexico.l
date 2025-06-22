@@ -116,7 +116,7 @@ PP_DIR      #(include|define|ifdef|endif|ifndef|elif|else)
         yylval.str_val = strdup(temp_str); 
         return STRING_LITERAL; 
     }
-    \\n         { strcat(temp_str, "\n"); }
+    \\n         { strcat(temp_str, "\\n"); }
     \\t         { strcat(temp_str, "\t"); }
     \\\"        { strcat(temp_str, "\""); }
     \\\\        { strcat(temp_str, "\\"); }

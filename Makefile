@@ -17,7 +17,7 @@ BUILD_DIR = build
 TEST_DIR = tests
 
 # Arquivos de teste
-TEST_FILES = $(wildcard $(TEST_DIR)/*.c)
+TEST_FILES = $(wildcard $(TEST_DIR)/*/input.c)
 
 .PHONY: all clear test
 
