@@ -49,7 +49,7 @@ void destruirEscopoLocal()
 }
 
 void inserirSimbolo(char *nome, Tipo tipo, CategoriaSimbolo categoria, int tamanho_bytes,
-                    int dimensao, int linha_declaracao, int endereco, Escopo escopo)
+                    int dimensao, int linha_declaracao, int endereco, Escopo escopo, const char *nome_struct)
 {
     if (!escopo_atual)
         criarEscopoLocal();
@@ -73,6 +73,15 @@ void inserirSimbolo(char *nome, Tipo tipo, CategoriaSimbolo categoria, int taman
     novoSimbolo->linha_ultimo_uso = -1;
     novoSimbolo->endereco = endereco;
     novoSimbolo->escopo = escopo;
+    if (tipo == TIPO_OBJETO && nome_struct)
+    {
+        strncpy(novoSimbolo->nome_struct, nome_struct, 31);
+        novoSimbolo->nome_struct[31] = '\0';
+    }
+    else
+    {
+        novoSimbolo->nome_struct[0] = '\0';
+    }
 
     // Adiciona o novo símbolo ao início da lista encadeada na posição da hash
     novoSimbolo->proximo = escopo_atual->tabela[i];

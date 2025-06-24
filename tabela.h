@@ -5,20 +5,23 @@
 #include "ast.h"
 
 // Enum para a categoria do símbolo
-typedef enum {
+typedef enum
+{
     VARIAVEL,
     FUNCAO,
     PARAMETRO,
 } CategoriaSimbolo;
 
 // Enum para o escopo (ex: global, local)
-typedef enum {
+typedef enum
+{
     ESCOPO_GLOBAL,
     ESCOPO_LOCAL,
     // Adicione outros escopos conforme necessário (ex: ESCOPO_FUNCAO)
 } Escopo;
 
-typedef struct simbolo {
+typedef struct simbolo
+{
     char nome[32];
     Tipo tipo;
 
@@ -30,17 +33,20 @@ typedef struct simbolo {
     int endereco;
     Escopo escopo;
 
+    char nome_struct[32]; // Adicionado para guardar o nome do struct (ex: Point)
+
     struct simbolo *proximo;
 } Simbolo;
 
-typedef struct tabela_simbolos {
+typedef struct tabela_simbolos
+{
     Simbolo *tabela[TAM];
     struct tabela_simbolos *anterior;
 } TabelaSimbolos;
 
 extern TabelaSimbolos *escopo_atual;
 
-void inserirSimbolo(char *nome, Tipo tipo, CategoriaSimbolo categoria, int tamanho_bytes, int dimensao, int linha_declaracao, int endereco, Escopo escopo);
+void inserirSimbolo(char *nome, Tipo tipo, CategoriaSimbolo categoria, int tamanho_bytes, int dimensao, int linha_declaracao, int endereco, Escopo escopo, const char *nome_struct);
 Simbolo *buscarSimbolo(char *nome);
 Simbolo *buscarSimboloNoEscopoAtual(char *nome);
 void imprimirTabela();

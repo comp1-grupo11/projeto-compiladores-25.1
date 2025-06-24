@@ -1,59 +1,35 @@
-0a1,5
-> interface Ponto {
->   x: number;
->   y: number;
-> }
-> 
-5,22c10,42
-< let div: number = a / b;
-< let mod: number = a /*op*/ b;
-< soma = soma + 1sub = sub - 1mul = mul * 2div = div / 2let eq: number = a == b;
+6c6
+< let mod: number = ab;
+---
+>     let mod: number = a % b;
+11,19c11,19
+< let eq: number = a == b;
 < let ne: number = a != b;
 < let lt: number = a < b;
 < let le: number = a <= b;
 < let gt: number = a > b;
 < let ge: number = a >= b;
-< let e: number = a /*op*/ b;
-< let ou: number = a /*op*/ b;
-< let nao: number = a /*op*/ ;
-< a /*op*/ b /*op*/ let p: any;
-< // [Tipo de nó não implementado: 22]
-< // [Tipo de nó não implementado: 22]
-< let v: number = 4;
-< v /*op*/ 0 = // [Tipo de nó não implementado: 23]
-< v /*op*/ 1 = // [Tipo de nó não implementado: 23]
-< v /*op*/ 2 = v /*op*/ 0 + v /*op*/ 1v /*op*/ 3 = a != b /*op*/  /*op*/ v /*op*/  /*op*/ 2 < b /*op*/ return v /*op*/ 2;
+< let e: number = a && b;
+< let ou: number = a || b;
+< let nao: number = !a;
 ---
->   let div: number = Math.trunc(a / b);
->   let mod: number = a % b;
-> 
->   soma += 1;
->   sub -= 1;
->   mul *= 2;
->   div /= 2;
-> 
->   let eq: number = Number(a === b);
->   let ne: number = Number(a !== b);
->   let lt: number = Number(a < b);
->   let le: number = Number(a <= b);
->   let gt: number = Number(a > b);
->   let ge: number = Number(a >= b);
-> 
->   let e: number = Number(a && b);
->   let ou: number = Number(a || b);
->   let nao: number = Number(!a);
-> 
->   a++;
->   b--;
-> 
->   let p: Ponto = { x: 0, y: 0 };
->   p.x = soma;
->   p.y = sub;
-> 
->   let v: number[] = new Array(4);
->   v[0] = p.x;
->   v[1] = p.y;
->   v[2] = v[0] + v[1];
->   v[3] = Number(a !== ++b || !(--v[2] < b));
-> 
->   return v[2];
+>     let eq: boolean = a == b;
+>     let ne: boolean = a != b;
+>     let lt: boolean = a < b;
+>     let le: boolean = a <= b;
+>     let gt: boolean = a > b;
+>     let ge: boolean = a >= b;
+>     let e: boolean = a && b;
+>     let ou: boolean = a || b;
+>     let nao: boolean = !a;
+23d22
+< b--;
+27d25
+< p.y = sub;
+33,38d30
+< v1p.y;
+< v2v0 + v1;
+< v3a != b++ || !v--2 < b;
+< v2v0 + v1;
+< v3a != b++ || !v--2 < b;
+< v3a != b++ || !v--2 < b;

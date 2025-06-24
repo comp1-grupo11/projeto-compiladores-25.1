@@ -1,79 +1,101 @@
 0a1,5
-> interface Point {
+> type Point = {
 >   x: number;
 >   y: number;
-> }
+> };
 > 
-2,14c7,23
-< printf("Iniciando teste da AST
-< ")let i: number = 0;
-< let f: number = 3.140000;
-< let c: string = 'A';
-< i = i + 2i /*op*/ i = i * 3f = f / 2.500000if (i > 5 /*op*/ f < 10.000000) {
-< printf("Condição complexa satisfeita
-< ")}
-< else {
-< printf("Condição não satisfeita
-< ")}
-< for (let j: number = 0;
-<  j < 15; j = j + 1) {
-< // [Tipo de nó não implementado: 9]
----
+1a7
 >   // Chamada de função básica
->   console.log("Iniciando teste da AST");
+2a9,10
 > 
 >   // Declarações e operadores
->   let i: number = 0;
->   let f: number = 3.14;
->   let c: string = "A";
->   i += 2;
->   i++;
->   i *= 3;
->   f /= 2.5;
+9d16
+< i *= 3;
+11c18,20
+< if (i > 5 && f < 10) {
+---
 > 
 >   // Estrutura condicional complexa
 >   if (i > 5 && f < 10.0) {
->     console.log("Condição complexa satisfeita");
->   } else {
->     console.log("Condição não satisfeita");
-16,27c25,51
-< let p1: any;
-< // [Tipo de nó não implementado: 22]
-< // [Tipo de nó não implementado: 22]
-< let p2: any = // [Tipo de nó não implementado: 22]
-< ;
-< printf("Ponto final: (%d, %d)
-< "// [Tipo de nó não implementado: 23]
-< // [Tipo de nó não implementado: 23]
-< , // [Tipo de nó não implementado: 23]
-< // [Tipo de nó não implementado: 23]
-< , // [Tipo de nó não implementado: 23]
-< )return 0;
+13,14c22
+< }
+< else {
 ---
+>   } else {
+16a25,26
 > 
 >   // Loop com switch aninhado
->   for (let j = 0; j < 15; j = j + 1) {
->     switch (j % 5) {
->       case 0:
->         console.log("Múltiplo de 5");
+21,46c31
+< // [Tipo de nó não implementado: 14]
+<   case 1:
+<   case 2:
+< console.log("Resíduo baixo");
+< // [Tipo de nó não implementado: 14]
+<   default:
+< console.log("Outro resíduo");
+< }
+< let p1: Point = { x: 0, y: 0 };
+< }
+< switch (j % 5) {
+<   case 0:
+< console.log("Múltiplo de 5");
+< // [Tipo de nó não implementado: 14]
+<   case 1:
+<   case 2:
+< console.log("Resíduo baixo");
+< // [Tipo de nó não implementado: 14]
+<   default:
+< console.log("Outro resíduo");
+< }
+< for (; j < 15; j = j + 1) {
+< switch (j % 5) {
+<   case 0:
+< console.log("Múltiplo de 5");
+< // [Tipo de nó não implementado: 14]
+---
 >         break;
->       case 1:
->       case 2:
->         console.log("Resíduo baixo");
+50c35
+< // [Tipo de nó não implementado: 14]
+---
 >         break;
->       default:
->         console.log("Outro resíduo");
->     }
->   }
+55,76c40,42
+< switch (j % 5) {
+<   case 0:
+< console.log("Múltiplo de 5");
+< // [Tipo de nó não implementado: 14]
+<   case 1:
+<   case 2:
+< console.log("Resíduo baixo");
+< // [Tipo de nó não implementado: 14]
+<   default:
+< console.log("Outro resíduo");
+< }
+< switch (j % 5) {
+<   case 0:
+< console.log("Múltiplo de 5");
+< // [Tipo de nó não implementado: 14]
+<   case 1:
+<   case 2:
+< console.log("Resíduo baixo");
+< // [Tipo de nó não implementado: 14]
+<   default:
+< console.log("Outro resíduo");
+< }
+---
 > 
 >   // Uso de struct
->   const p1: Point = { x: 0, y: 0 };
->   p1.x = 10;
->   p1.y = i * 2;
-> 
+>   let p1: Point = { x: 0, y: 0 };
+79,83d44
+< let p2: Point = { x: p1.y, y: 0 };
+< p1.y = i * 2;
+< console.log(`Ponto final: (${p2.xp2.y}, ${p2.y})\n`);
+< return 0;
+< }
+84a46,47
 >   // Operações com struct
->   const p2: Point = { x: p1.y, y: p1.x };
-> 
+>   let p2: Point = { x: p1.y, y: p1.x };
+85a49,52
 >   console.log(`Ponto final: (${p2.x}, ${p2.y})`);
 > 
 >   return 0;
+> }

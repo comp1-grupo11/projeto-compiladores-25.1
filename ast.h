@@ -19,6 +19,7 @@ typedef enum
 const char *nomeTipo(Tipo tipo);
 
 // Enumeração para o tipo de nó na AST
+// ATENÇÃO: mantenha esta enumeração sincronizada com todos os arquivos!
 typedef enum
 {
     NODE_OPERATOR,

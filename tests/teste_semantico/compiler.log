@@ -6,3 +6,4 @@ Erro sintático linha 31: Identificador não declarado.
 Erro sintático linha 31: Atribuição para expressão inválida.
 Erro sintático linha 37: Identificador não declarado.
 Erro sintático linha 37: Atribuição para expressão inválida.
+Tipo de nó AST não suportado: 19

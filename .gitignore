@@ -13,9 +13,12 @@ build/
 lex.yy.*
 *.output
 *.ts
+diff.txt
+*.log
 parser
 
 # Outros
 *.swp
 *~
 .DS_Store
+!expected.ts

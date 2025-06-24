@@ -6,6 +6,7 @@
 #include "ast.h"
 #include "tabela.h"
 #include "gerador_ts.h"
+#include "gerador.h"
 
 extern int yylex();
 extern int yyparse();
@@ -19,6 +20,7 @@ void destruirEscopoLocal(void);
 void gerarTypeScript(NoAST *no, FILE *saida, VarDecl **decls, int ident);
 
 Tipo current_decl_type;
+char current_struct_name[32] = {0};
 
 int temErroSemantico = 0;
 
@@ -132,7 +134,7 @@ preprocessor:
 function:
     type_specifier IDENTIFIER LPAREN params RPAREN LBRACE stmt_list RBRACE
     {
-        inserirSimbolo($2, $1, FUNCAO, 0, -1, yylineno, 0, ESCOPO_GLOBAL);
+        inserirSimbolo($2, $1, FUNCAO, 0, -1, yylineno, 0, ESCOPO_GLOBAL, NULL);
         criarEscopoLocal();
         destruirEscopoLocal();
         NoAST *bloco = criarNoCompoundStmt($7);
@@ -141,12 +143,12 @@ function:
 ;
 
 type_specifier:
-    TYPE_INT        { $$ = TIPO_INT; current_decl_type = TIPO_INT; }
-    | TYPE_CHAR     { $$ = TIPO_CHAR; current_decl_type = TIPO_CHAR; }
-    | TYPE_FLOAT    { $$ = TIPO_FLOAT; current_decl_type = TIPO_FLOAT; }
-    | TYPE_DOUBLE   { $$ = TIPO_DOUBLE; current_decl_type = TIPO_DOUBLE; }
-    | TYPE_VOID     { $$ = TIPO_VOID; current_decl_type = TIPO_VOID; }
-    | KW_STRUCT IDENTIFIER { $$ = TIPO_OBJETO; current_decl_type = TIPO_OBJETO; }
+    TYPE_INT        { $$ = TIPO_INT; current_decl_type = TIPO_INT; current_struct_name[0] = '\0'; }
+    | TYPE_CHAR     { $$ = TIPO_CHAR; current_decl_type = TIPO_CHAR; current_struct_name[0] = '\0'; }
+    | TYPE_FLOAT    { $$ = TIPO_FLOAT; current_decl_type = TIPO_FLOAT; current_struct_name[0] = '\0'; }
+    | TYPE_DOUBLE   { $$ = TIPO_DOUBLE; current_decl_type = TIPO_DOUBLE; current_struct_name[0] = '\0'; }
+    | TYPE_VOID     { $$ = TIPO_VOID; current_decl_type = TIPO_VOID; current_struct_name[0] = '\0'; }
+    | KW_STRUCT IDENTIFIER { $$ = TIPO_OBJETO; current_decl_type = TIPO_OBJETO; strncpy(current_struct_name, $2, 31); current_struct_name[31] = '\0'; }
     | KW_CONST type_specifier { $$ = $2; }
     | KW_SIGNED type_specifier { $$ = $2; }
     | KW_UNSIGNED type_specifier { $$ = $2; }
@@ -179,7 +181,7 @@ param_list:
 
 param_decl:
     type_specifier IDENTIFIER {
-        inserirSimbolo($2, $1, PARAMETRO, 0, 0, yylineno, 0, ESCOPO_LOCAL);
+        inserirSimbolo($2, $1, PARAMETRO, 0, 0, yylineno, 0, ESCOPO_LOCAL, NULL);
         $$ = criarNoDeclaracaoVar($2, $1, NULL);
     }
 ;
@@ -351,16 +353,14 @@ declarator:
             $$ = criarNoErro();
         } else {
             int tamanho = 0;
-            switch(current_decl_type) {
-                case TIPO_INT:    tamanho = 4; break;
-                case TIPO_FLOAT:  tamanho = 4; break;
-                case TIPO_DOUBLE: tamanho = 8; break;
-                case TIPO_CHAR:   tamanho = 1; break;
-                default:          tamanho = 0; break;
+            if (current_decl_type == TIPO_OBJETO) {
+                inserirSimbolo($1, current_decl_type, VARIAVEL, tamanho, 0, yylineno, 0, ESCOPO_LOCAL, current_struct_name);
+            } else {
+                inserirSimbolo($1, current_decl_type, VARIAVEL, tamanho, 0, yylineno, 0, ESCOPO_LOCAL, NULL);
             }
-            inserirSimbolo($1, current_decl_type, VARIAVEL, tamanho, 0, yylineno, 0, ESCOPO_LOCAL);
             $$ = criarNoDeclaracaoVar($1, current_decl_type, NULL);
         }
+        current_struct_name[0] = '\0';
     }
     | IDENTIFIER OP_ASSIGN expr {
         Simbolo *s = buscarSimboloNoEscopoAtual($1);
@@ -369,34 +369,14 @@ declarator:
             $$ = criarNoErro();
         } else {
             int tamanho = 0;
-            switch(current_decl_type) {
-                case TIPO_INT:    tamanho = 4; break;
-                case TIPO_FLOAT:  tamanho = 4; break;
-                case TIPO_DOUBLE: tamanho = 8; break;
-                case TIPO_CHAR:   tamanho = 1; break;
-                case TIPO_VOID:
-                case TIPO_ERRO:
-                default:          tamanho = 0; break;
-            }
-            inserirSimbolo($1, current_decl_type, VARIAVEL, tamanho, 0, yylineno, 0, ESCOPO_LOCAL);
-
-            if ($3 == NULL || $3->tipo_dado == TIPO_ERRO || !tiposCompativeis(current_decl_type, $3->tipo_dado)) {
-                fprintf(stderr,
-                        "Erro de tipo: Atribuição de tipo incompatível para '%s' (tipo %s) com expressão (tipo %s) na linha %d.\n",
-                        $1,
-                        nomeTipo(current_decl_type),
-                        nomeTipo($3 ? $3->tipo_dado : TIPO_ERRO),
-                        yylineno);
-                $$ = criarNoErro();
+            if (current_decl_type == TIPO_OBJETO) {
+                inserirSimbolo($1, current_decl_type, VARIAVEL, tamanho, 0, yylineno, 0, ESCOPO_LOCAL, current_struct_name);
             } else {
-                $$ = criarNoDeclaracaoVar($1, current_decl_type, $3);
+                inserirSimbolo($1, current_decl_type, VARIAVEL, tamanho, 0, yylineno, 0, ESCOPO_LOCAL, NULL);
             }
-
-            Simbolo *inserted_s = buscarSimbolo($1);
-            if (inserted_s) {
-                inserted_s->linha_ultimo_uso = yylineno;
-            }
+            $$ = criarNoDeclaracaoVar($1, current_decl_type, $3);
         }
+        current_struct_name[0] = '\0';
     }
     | IDENTIFIER LBRACKET expr RBRACKET {
         Simbolo *s = buscarSimboloNoEscopoAtual($1);
@@ -412,9 +392,14 @@ declarator:
                 case TIPO_CHAR:   tamanho = 1; break;
                 default:          tamanho = 0; break;
             }
-            inserirSimbolo($1, current_decl_type, VARIAVEL, tamanho, 0, yylineno, 0, ESCOPO_LOCAL);
+            if (current_decl_type == TIPO_OBJETO) {
+                inserirSimbolo($1, current_decl_type, VARIAVEL, tamanho, 0, yylineno, 0, ESCOPO_LOCAL, current_struct_name);
+            } else {
+                inserirSimbolo($1, current_decl_type, VARIAVEL, tamanho, 0, yylineno, 0, ESCOPO_LOCAL, NULL);
+            }
             $$ = criarNoDeclaracaoVarArray($1, current_decl_type, $3);
         }
+        current_struct_name[0] = '\0';
     }
     | IDENTIFIER OP_ASSIGN LBRACE field_assign_list RBRACE {
         Simbolo *s = buscarSimboloNoEscopoAtual($1);
@@ -423,9 +408,14 @@ declarator:
             $$ = criarNoErro();
         } else {
             int tamanho = 0;
-            inserirSimbolo($1, current_decl_type, VARIAVEL, tamanho, 0, yylineno, 0, ESCOPO_LOCAL);
+            if (current_decl_type == TIPO_OBJETO) {
+                inserirSimbolo($1, current_decl_type, VARIAVEL, tamanho, 0, yylineno, 0, ESCOPO_LOCAL, current_struct_name);
+            } else {
+                inserirSimbolo($1, current_decl_type, VARIAVEL, tamanho, 0, yylineno, 0, ESCOPO_LOCAL, NULL);
+            }
             $$ = criarNoDeclaracaoVar($1, current_decl_type, $4);
         }
+        current_struct_name[0] = '\0';
     }
     | IDENTIFIER LBRACKET expr RBRACKET OP_ASSIGN LBRACE expr_list RBRACE {
         Simbolo *s = buscarSimboloNoEscopoAtual($1);
@@ -445,7 +435,7 @@ declarator:
             if ($3 && $3->tipo_no == NODE_LITERAL && $3->tipo_dado == TIPO_INT) {
                 tam_array = $3->data.literal.val_int;
             }
-            inserirSimbolo($1, current_decl_type, VARIAVEL, tamanho, tam_array, yylineno, 0, ESCOPO_LOCAL);
+            inserirSimbolo($1, current_decl_type, VARIAVEL, tamanho, tam_array, yylineno, 0, ESCOPO_LOCAL, NULL);
             $$ = criarNoDeclaracaoVarArray($1, current_decl_type, $3);
         }
     }
@@ -463,7 +453,7 @@ declarator:
                 case TIPO_CHAR:   tamanho = 1; break;
                 default:          tamanho = 0; break;
             }
-            inserirSimbolo($1, current_decl_type, VARIAVEL, tamanho, -1, yylineno, 0, ESCOPO_LOCAL);
+            inserirSimbolo($1, current_decl_type, VARIAVEL, tamanho, -1, yylineno, 0, ESCOPO_LOCAL, NULL);
             $$ = criarNoDeclaracaoVarArray($1, current_decl_type, NULL);
         }
     }
@@ -474,7 +464,7 @@ declarator:
             $$ = criarNoErro();
         } else {
             int tamanho = 1; // char
-            inserirSimbolo($1, current_decl_type, VARIAVEL, tamanho, -1, yylineno, 0, ESCOPO_LOCAL);
+            inserirSimbolo($1, current_decl_type, VARIAVEL, tamanho, -1, yylineno, 0, ESCOPO_LOCAL, NULL);
             $$ = criarNoDeclaracaoVarArray($1, current_decl_type, criarNoString($5));
         }
     }
@@ -663,8 +653,8 @@ void yyerror(const char *s) {
 }
 
 void inicializarTabelaSimbolosGlobais() {
-    inserirSimbolo("printf", TIPO_INT, FUNCAO, 0, -1, 0, 0, ESCOPO_GLOBAL);
-    inserirSimbolo("scanf", TIPO_INT, FUNCAO, 0, -1, 0, 0, ESCOPO_GLOBAL);
+    inserirSimbolo("printf", TIPO_INT, FUNCAO, 0, -1, 0, 0, ESCOPO_GLOBAL, NULL);
+    inserirSimbolo("scanf", TIPO_INT, FUNCAO, 0, -1, 0, 0, ESCOPO_GLOBAL, NULL);
 }
 
 int main(int argc, char *argv[]) {
@@ -698,6 +688,14 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
+    // Gerar código intermediário (IR)
+    FILE *saida_ir = fopen("intercode.ir", "w");
+    if (!saida_ir) {
+        perror("Erro ao criar arquivo de IR");
+        return 1;
+    }
+    gerarIR(raiz_ast, saida_ir);
+    fclose(saida_ir);
     // imprimirASTComIndent(raiz_ast, 0);
 
     VarDecl *decls = NULL;
