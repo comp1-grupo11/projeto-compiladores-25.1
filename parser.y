@@ -46,7 +46,7 @@ Tipo current_decl_type;
 /* Types */
 %type <tipo_decl> type_specifier
 %type <no_ast> stmt compound_stmt stmt_list var_decl declarator_list declarator expr args arg_list expr_list
-%type <no_ast> for_init for_cond for_iter switch_body case_list case_stmt default_case const_expr
+%type <no_ast> for_init for_cond for_iter switch_body case_list case_stmt default_case const_expr if_block else_block
 %type <no_ast> field_assign_list field_assign param_decl
 %token TYPE_INT TYPE_CHAR TYPE_FLOAT TYPE_DOUBLE TYPE_VOID
 
@@ -115,7 +115,10 @@ function:
         inserirSimbolo($2, $1, FUNCAO, 0, -1, yylineno, 0, nivel_escopo, TIPO_ESCOPO_GLOBAL);
         criarEscopoLocal();
         tipo_escopo_atual = TIPO_ESCOPO_FUNCAO;
-    } stmt_list RBRACE { destruirEscopoLocal(); }
+    } stmt_list RBRACE {
+        destruirEscopoLocal();
+        tipo_escopo_atual = TIPO_ESCOPO_GLOBAL;
+    }
 ;
 
 type_specifier:
@@ -173,20 +176,31 @@ stmt_list:
     }
 ;
 
+if_block:
+    { criarEscopoLocal(); tipo_escopo_atual = TIPO_ESCOPO_IF; }
+    stmt
+    { destruirEscopoLocal(); $$ = $2; }
+;
+
+else_block:
+    { criarEscopoLocal(); tipo_escopo_atual = TIPO_ESCOPO_ELSE; }
+    stmt
+    { destruirEscopoLocal(); $$ = $2; }
+;
+
 stmt:
-    expr SEMICOLON                 { $$ = $1; }
-    | KW_RETURN expr SEMICOLON     { $$ = criarNoReturn($2); }
-    | KW_IF LPAREN expr RPAREN stmt %prec IF_WITHOUT_ELSE { tipo_escopo_atual = TIPO_ESCOPO_IF; $$ = criarNoIf($3, $5, NULL); }
-    | KW_IF LPAREN expr RPAREN stmt KW_ELSE stmt {
-        tipo_escopo_atual = TIPO_ESCOPO_ELSE;
-        $$ = criarNoIf($3, $5, $7);
-    }
-    | KW_WHILE LPAREN expr RPAREN stmt { tipo_escopo_atual = TIPO_ESCOPO_WHILE; $$ = criarNoWhile($3, $5); }
-    | KW_FOR LPAREN { criarEscopoLocal(); tipo_escopo_atual = TIPO_ESCOPO_FOR; } for_init SEMICOLON for_cond SEMICOLON for_iter RPAREN stmt {
-        $$ = criarNoFor($4, $6, $8, $10);
-        destruirEscopoLocal();
-    }
-    | KW_SWITCH LPAREN expr RPAREN switch_body { tipo_escopo_atual = TIPO_ESCOPO_SWITCH; $$ = criarNoSwitch($3, $5); }
+      expr SEMICOLON                 { $$ = $1; }
+    | KW_RETURN expr SEMICOLON       { $$ = criarNoReturn($2); }
+    | KW_IF LPAREN expr RPAREN if_block %prec IF_WITHOUT_ELSE
+        { $$ = criarNoIf($3, $5, NULL); }
+    | KW_IF LPAREN expr RPAREN if_block KW_ELSE else_block
+        { $$ = criarNoIf($3, $5, $7); }
+    | KW_WHILE LPAREN expr RPAREN { criarEscopoLocal(); tipo_escopo_atual = TIPO_ESCOPO_WHILE; } stmt
+        { destruirEscopoLocal(); $$ = criarNoWhile($3, $6); }
+    | KW_FOR LPAREN { criarEscopoLocal(); tipo_escopo_atual = TIPO_ESCOPO_FOR; } for_init SEMICOLON for_cond SEMICOLON for_iter RPAREN stmt
+        { $$ = criarNoFor($4, $6, $8, $10); destruirEscopoLocal(); }
+    | KW_SWITCH LPAREN expr RPAREN { criarEscopoLocal(); tipo_escopo_atual = TIPO_ESCOPO_SWITCH; } switch_body
+        { destruirEscopoLocal(); $$ = criarNoSwitch($3, $6); }
     | compound_stmt                { $$ = $1; }
     | var_decl SEMICOLON           { $$ = $1; }
     | KW_BREAK SEMICOLON           { $$ = criarNoBreak(); }
@@ -428,6 +442,7 @@ declarator:
             $$ = criarNoErro();
         } else {
             int tamanho = sizeof($5) + 1; // +1 para o terminador nulo
+            printf("Tamanho do array de string: %d\tstring: %s\n", tamanho, $5);
             inserirSimbolo($1, current_decl_type, VARIAVEL, tamanho, 1, yylineno, 0, nivel_escopo, tipo_escopo_atual);
             $$ = criarNoDeclaracaoVarArray($1, current_decl_type, criarNoString($5));
         }
@@ -521,7 +536,7 @@ expr:
     | expr DOT IDENTIFIER {
         $$ = criarNoAcessoCampo($1, $3);
     }
-    | expr DOT IDENTIFIER OP_ASSIGN expr {
+    | expr DOT IDENTIFIER OP_ASSIGN expr %prec OP_ASSIGN {
         $$ = criarNoAtribuicaoCampo($1, $3, $5);
     }
     | expr LBRACKET expr RBRACKET { $$ = criarNoOp(OP_INDEX_TYPE, $1, $3); }
@@ -636,8 +651,8 @@ int main(int argc, char *argv[]) {
     if (yyparse() == 0) {
         printf("\n🎯 Análise sintática concluída com sucesso!\n");
 
-        printf("\n📦 Tabela de símbolos:\n");
-        imprimirTabela();
+        //printf("\n📦 Tabela de símbolos:\n");
+        //imprimirTabela();
 
         //printf("\n🌲 AST gerada:\n");
         //imprimirAST(raiz_ast);
