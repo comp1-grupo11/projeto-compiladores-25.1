@@ -252,7 +252,7 @@ void gerarTypeScript(NoAST *no, FILE *saida, VarDecl **decls, int ident, int isE
                     const char *format = fmt->data.literal.val_string;
                     fprintf(saida, "console.log(`");
                     const char *p = format;
-                    int arg_idx = 0;
+                    //int arg_idx = 0;
                     NoAST *arg = fmt->proximo;
                     while (*p)
                     {
@@ -526,7 +526,7 @@ void gerarTypeScript(NoAST *no, FILE *saida, VarDecl **decls, int ident, int isE
                     fprintf(saida, " / ");
                     break;
                 case OP_MOD_TYPE:
-                    fprintf(saida, " % ");
+                    fprintf(saida, " %% ");
                     break;
                 case OP_EQ_TYPE:
                     fprintf(saida, " == ");
