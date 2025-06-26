@@ -37,7 +37,7 @@ void destruirEscopoLocal()
     if (!escopo_atual)
         return;
 
-    //imprimirTabela();
+    // imprimirTabela();
     for (int i = 0; i < TAM; i++)
     {
         Simbolo *s = escopo_atual->tabela[i];
@@ -55,36 +55,11 @@ void destruirEscopoLocal()
 }
 
 void inserirSimbolo(char *nome, Tipo tipo, CategoriaSimbolo categoria, int tamanho_bytes,
-                    int dimensao, int linha_declaracao, int endereco, int id_escopo, TipoEscopo tipo_escopo, const char *nome_struct)
+                    int dimensao, int linha_declaracao, int endereco, Escopo escopo, const char *nome_struct)
 {
-    switch (tipo_escopo) {
-            case TIPO_ESCOPO_GLOBAL:
-                //printf("Insere %s com escopo GLOBAL na linha: %d\n", nome,linha_declaracao);
-                break;
-            case TIPO_ESCOPO_FUNCAO:
-                //printf("Insere %s com escopo FUNCAO na linha: %d\n", nome,linha_declaracao);
-                break;
-            case TIPO_ESCOPO_IF:
-                //printf("Insere %s com escopo IF na linha: %d\n", nome,linha_declaracao);
-                break;
-            case TIPO_ESCOPO_ELSE:
-                //printf("Insere %s com escopo ELSE na linha: %d\n",nome, linha_declaracao);
-                break;
-            case TIPO_ESCOPO_FOR:
-                //printf("Insere %s com escopo FOR na linha: %d\n", nome,linha_declaracao);
-                break;
-            case TIPO_ESCOPO_WHILE:
-                //printf("Insere %s com escopo WHILE na linha: %d\n", nome, linha_declaracao);
-                break;
-            case TIPO_ESCOPO_SWITCH:
-                //printf("Insere %s com escopo SWITCH na linha: %d\n",nome, linha_declaracao);
-                break;
-            default:
-                //printf("Insere %s com escopo ??? na linha: %d\n", nome,linha_declaracao);
-                break;
-            }
-    //if (!escopo_atual)
-        //criarEscopoLocal();
+    // Escopo simplificado: apenas global ou local
+    // if (!escopo_atual)
+    // criarEscopoLocal();
 
     unsigned i = hash(nome);
 
@@ -104,8 +79,8 @@ void inserirSimbolo(char *nome, Tipo tipo, CategoriaSimbolo categoria, int taman
     novoSimbolo->linha_declaracao = linha_declaracao;
     novoSimbolo->linha_ultimo_uso = -1;
     novoSimbolo->endereco = endereco;
-    novoSimbolo->id_escopo = id_escopo;
-    novoSimbolo->tipo_escopo = tipo_escopo;
+    // id_escopo removido
+    novoSimbolo->escopo = escopo;
     if (tipo == TIPO_OBJETO && nome_struct)
     {
         strncpy(novoSimbolo->nome_struct, nome_struct, 31);
@@ -150,96 +125,11 @@ Simbolo *buscarSimboloNoEscopoAtual(char *nome)
     return NULL;
 }
 
-
-static TipoEscopo pilha_tipo_escopo[MAX_ESCOPO];
-static int topo_tipo_escopo = -1;
-
-void imprimirPilhaTipoEscopo(int topo) {
-    printf("---- TOPO ----\n");
-    for (int i = topo; i >= 0; i--) {
-        switch (pilha_tipo_escopo[i]) {
-            case TIPO_ESCOPO_GLOBAL:  printf("| GLOBAL   |\n"); break;
-            case TIPO_ESCOPO_FUNCAO:  printf("| FUNCAO   |\n"); break;
-            case TIPO_ESCOPO_IF:      printf("| IF       |\n"); break;
-            case TIPO_ESCOPO_ELSE:    printf("| ELSE     |\n"); break;
-            case TIPO_ESCOPO_FOR:     printf("| FOR      |\n"); break;
-            case TIPO_ESCOPO_SWITCH:  printf("| SWITCH   |\n"); break;
-            default:                  printf("| DESCONHECIDO |\n"); break;
-        }
-        printf("-------------\n");
-    }
-    printf("---- BASE ----\n");
-}
-
-void empilhaTipoEscopo(TipoEscopo tipo)
-{
-    if (topo_tipo_escopo < MAX_ESCOPO - 1) {
-        switch (tipo) {
-            case TIPO_ESCOPO_GLOBAL:
-                //printf("Empilha escopo GLOBAL\n");
-                break;
-            case TIPO_ESCOPO_FUNCAO:
-                //printf("Empilha escopo FUNCAO\n");
-                break;
-            case TIPO_ESCOPO_IF:
-                //printf("Empilha escopo IF\n");
-                break;
-            case TIPO_ESCOPO_ELSE:
-                //printf("Empilha escopo ELSE\n");
-                break;
-            case TIPO_ESCOPO_FOR:
-                //printf("Empilha escopo FOR\n");
-                break;
-            case TIPO_ESCOPO_WHILE:
-                //printf("Empilha escopo WHILE\n");
-                break;
-            case TIPO_ESCOPO_SWITCH:
-                //printf("Empilha escopo SWITCH\n");
-                break;
-            default:
-                //printf("Empilha escopo ???\n");
-                break;
-            }
-        pilha_tipo_escopo[++topo_tipo_escopo] = tipo;
-        //printf("\nEstado da pilha depois de empilhar:\n");
-        //imprimirPilhaTipoEscopo(topo_tipo_escopo);
-
-        } else {
-            fprintf(stderr, "Estouro da pilha de tipo de escopo.\n");
-        }
-}
-
-void desempilhaTipoEscopo(void)
-{
-    if (topo_tipo_escopo >= 0)
-        {
-            topo_tipo_escopo--;
-            //printf("\nEstado da pilha depois de desempilhar:\n");
-            //imprimirPilhaTipoEscopo(topo_tipo_escopo);
-    }
-
-    else
-        fprintf(stderr, "Pilha de tipo de escopo já está vazia.\n");
-}
-
-
-
-TipoEscopo tipoEscopoAtual(void)
-{
-    //printf("\nEstado da pilha ao chamar tipoEscopoAtual():\n");
-    //imprimirPilhaTipoEscopo(topo_tipo_escopo);
-
-    if (topo_tipo_escopo >= 0)
-        return pilha_tipo_escopo[topo_tipo_escopo];
-    return TIPO_ESCOPO_GLOBAL;
-}
-
-
 void imprimirTabela()
 {
     printf("\n--- TABELA DE SIMBOLOS ---\n");
-    printf("%-20s %-10s %-10s %-10s %-8s %-8s %-8s %-8s %-8s %-8s\n",
-           "Nome", "Tipo", "Categoria", "Escopo", "IDEscopo", "Tam", "Dim", "Decl", "Uso", "Addr");
+    printf("%-20s %-10s %-10s %-10s %-8s %-8s %-8s %-8s %-8s\n",
+           "Nome", "Tipo", "Categoria", "Escopo", "Tam", "Dim", "Decl", "Uso", "Addr");
     printf("-------------------------------------------------------------------------------------------------------------\n");
 
     TabelaSimbolos *esc = escopo_atual;
@@ -302,38 +192,22 @@ void imprimirTabela()
                 }
 
                 char escopo_str[10];
-                // Convertendo o TipoEscopo para string
-                switch (s->tipo_escopo)
+                // Convertendo o Escopo para string
+                switch (s->escopo)
                 {
-                case TIPO_ESCOPO_GLOBAL:
+                case ESCOPO_GLOBAL:
                     strcpy(escopo_str, "GLOBAL");
                     break;
-                case TIPO_ESCOPO_FUNCAO:
-                    strcpy(escopo_str, "FUNCAO");
-                    break;
-                case TIPO_ESCOPO_IF:
-                    strcpy(escopo_str, "IF");
-                    break;
-                case TIPO_ESCOPO_ELSE:
-                    strcpy(escopo_str, "ELSE");
-                    break;
-                case TIPO_ESCOPO_FOR:
-                    strcpy(escopo_str, "FOR");
-                    break;
-                case TIPO_ESCOPO_WHILE:
-                    strcpy(escopo_str, "WHILE");
-                    break;
-                case TIPO_ESCOPO_SWITCH:
-                    strcpy(escopo_str, "SWITCH");
+                case ESCOPO_LOCAL:
+                    strcpy(escopo_str, "LOCAL");
                     break;
                 default:
                     strcpy(escopo_str, "???");
                     break;
                 }
 
-                printf("%-20s %-10s %-10s %-10s %-8d %-8d %-8d %-8d %-8d %-8d\n",
+                printf("%-20s %-10s %-10s %-10s %-8d %-8d %-8d %-8d %-8d\n",
                        s->nome, tipo_str, categoria_str, escopo_str,
-                       s->id_escopo, // <-- Aqui imprime o id do escopo
                        s->tamanho_bytes, s->dimensao,
                        s->linha_declaracao, s->linha_ultimo_uso, s->endereco);
             }
