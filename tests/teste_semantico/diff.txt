@@ -1,0 +1,17 @@
+3a4
+> return 0;
+9a10,11
+> return 0;
+> return 0;
+15a17,18
+> return 0;
+> return 0;
+19a22
+> return "abc";
+27a30
+> return 0;
+28a32,33
+> return 0;
+> return 0;
+34a39
+> return 0;

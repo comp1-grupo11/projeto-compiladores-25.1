@@ -1,0 +1,38 @@
+6c6
+< let mod: number = ab;
+---
+>     let mod: number = a % b;
+11,19c11,19
+< let eq: number = a == b;
+< let ne: number = a != b;
+< let lt: number = a < b;
+< let le: number = a <= b;
+< let gt: number = a > b;
+< let ge: number = a >= b;
+< let e: number = a && b;
+< let ou: number = a || b;
+< let nao: number = !a;
+---
+>     let eq: boolean = a == b;
+>     let ne: boolean = a != b;
+>     let lt: boolean = a < b;
+>     let le: boolean = a <= b;
+>     let gt: boolean = a > b;
+>     let ge: boolean = a >= b;
+>     let e: boolean = a && b;
+>     let ou: boolean = a || b;
+>     let nao: boolean = !a;
+22,23c22
+< let p: any = {} ;
+< b--;
+---
+>     let p: Ponto = { x: 0, y: 0 };
+27d25
+< p.y = sub;
+33,38d30
+< v1p.y;
+< v2v0 + v1;
+< v3a != b++ || !v--2 < b;
+< v2v0 + v1;
+< v3a != b++ || !v--2 < b;
+< v3a != b++ || !v--2 < b;

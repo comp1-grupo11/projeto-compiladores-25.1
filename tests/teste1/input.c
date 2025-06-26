@@ -1,7 +1,7 @@
 #include <stdio.h>
 
 #define MAX_SIZE 100
-#define string char*
+#define string char *
 
 struct Pessoa
 {

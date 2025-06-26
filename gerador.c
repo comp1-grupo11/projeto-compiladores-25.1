@@ -59,28 +59,39 @@ char *gerarIR(NoAST *no, FILE *saida)
         switch (no->data.op_type)
         {
         case OP_ADD_TYPE:
-            op_str = "+"; break;
+            op_str = "+";
+            break;
         case OP_SUB_TYPE:
-            op_str = "-"; break;
+            op_str = "-";
+            break;
         case OP_MUL_TYPE:
-            op_str = "*"; break;
+            op_str = "*";
+            break;
         case OP_DIV_TYPE:
-            op_str = "/"; break;
+            op_str = "/";
+            break;
         case OP_EQ_TYPE:
-            op_str = "=="; break;
+            op_str = "==";
+            break;
         case OP_NE_TYPE:
-            op_str = "!="; break;
+            op_str = "!=";
+            break;
         case OP_LT_TYPE:
-            op_str = "<"; break;
+            op_str = "<";
+            break;
         case OP_LE_TYPE:
-            op_str = "<="; break;
+            op_str = "<=";
+            break;
         case OP_GT_TYPE:
-            op_str = ">"; break;
+            op_str = ">";
+            break;
         case OP_GE_TYPE:
-            op_str = ">="; break;
+            op_str = ">=";
+            break;
 
         default:
-            op_str = "??"; break;
+            op_str = "??";
+            break;
         }
 
         fprintf(saida, "%s = %s %s %s\n", temp, left, op_str, right);
@@ -119,13 +130,13 @@ char *gerarIR(NoAST *no, FILE *saida)
         char *label_end = novoLabel();
 
         fprintf(saida, "ifFalse %s goto %s\n", cond, label_else);
-        gerarIR(no->direita, saida); 
+        gerarIR(no->direita, saida);
         fprintf(saida, "goto %s\n", label_end);
         fprintf(saida, "%s:\n", label_else);
         if (no->centro)
-            gerarIR(no->centro, saida); 
+            gerarIR(no->centro, saida);
         else
-        fprintf(saida, "%s:\n", label_end);
+            fprintf(saida, "%s:\n", label_end);
         free(cond);
         return NULL;
     }
@@ -150,13 +161,13 @@ char *gerarIR(NoAST *no, FILE *saida)
         char *label_inicio = novoLabel();
         char *label_fim = novoLabel();
 
-        gerarIR(no->esquerda, saida); 
+        gerarIR(no->esquerda, saida);
         fprintf(saida, "%s:\n", label_inicio);
 
-        char *cond = gerarIR(no->direita, saida); 
+        char *cond = gerarIR(no->direita, saida);
         fprintf(saida, "ifFalse %s goto %s\n", cond, label_fim);
         gerarIR(no->proximo, saida);
-        gerarIR(no->centro, saida);  
+        gerarIR(no->centro, saida);
         fprintf(saida, "goto %s\n", label_inicio);
         fprintf(saida, "%s:\n", label_fim);
         free(cond);
@@ -198,6 +209,15 @@ char *gerarIR(NoAST *no, FILE *saida)
     case NODE_CONTINUE:
         fprintf(saida, "continue\n");
         return NULL;
+
+    case NODE_SWITCH_BODY:
+    {
+        if (no->esquerda)
+            gerarIR(no->esquerda, saida);
+        if (no->direita)
+            gerarIR(no->direita, saida);
+        return NULL;
+    }
 
     default:
         fprintf(stderr, "Tipo de nó AST não suportado: %d\n", no->tipo_no);

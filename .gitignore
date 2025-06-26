@@ -4,6 +4,7 @@
 # Build e binários
 build/
 *.o
+*.ts
 *.out
 *.exe
 
@@ -11,9 +12,13 @@ build/
 *.tab.*
 lex.yy.*
 *.output
+*.ts
+diff.txt
+*.log
 parser
 
 # Outros
 *.swp
 *~
 .DS_Store
+!expected.ts

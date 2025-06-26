@@ -2,8 +2,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stddef.h>
 #include "ast.h"
 #include "tabela.h"
+#include "gerador_ts.h"
+#include "gerador.h"
 
 extern int yylex();
 extern int yyparse();
@@ -14,11 +17,19 @@ extern int yylineno;
 void yyerror(const char *s);
 void criarEscopoLocal(void);
 void destruirEscopoLocal(void);
+void gerarTypeScript(NoAST *no, FILE *saida, VarDecl **decls, int ident);
 
 Tipo current_decl_type;
+char current_struct_name[32] = {0};
+
+int temErroSemantico = 0;
+
+void gerarCodigoTs(NoAST *no, int indent);
+NoAST *raiz_programa;
+NoAST *raiz_ast = NULL;
 %}
 
-%define parse.error verbose
+// %define parse.error verbose
 
 %union {
     char* str_val;
@@ -45,9 +56,11 @@ Tipo current_decl_type;
 
 /* Types */
 %type <tipo_decl> type_specifier
-%type <no_ast> stmt compound_stmt stmt_list var_decl declarator_list declarator expr args arg_list expr_list
+%type <no_ast> program toplevel_list toplevel function function_body params param_list param_decl stmt compound_stmt stmt_list
+%type <no_ast> var_decl declarator_list declarator expr args arg_list expr_list
 %type <no_ast> for_init for_cond for_iter switch_body case_list case_stmt default_case const_expr if_block else_block
-%type <no_ast> field_assign_list field_assign param_decl
+%type <no_ast> field_assign_list field_assign
+%type <no_ast> iteration_stmt 
 %token TYPE_INT TYPE_CHAR TYPE_FLOAT TYPE_DOUBLE TYPE_VOID
 
 /* Operators */
@@ -77,19 +90,27 @@ Tipo current_decl_type;
 %%
 
 program:
-    toplevel_list
+    toplevel_list { raiz_ast = $1; }
 ;
 
 toplevel_list:
-      /* empty */
-    | toplevel_list toplevel
+      /* empty */ { $$ = NULL; }
+    | toplevel_list toplevel {
+        if ($1 == NULL) $$ = $2;
+        else {
+            NoAST *current = $1;
+            while (current->proximo) current = current->proximo;
+            current->proximo = $2;
+            $$ = $1;
+        }
+    }
 ;
 
 toplevel:
-      preprocessor
-    | function
-    | var_decl SEMICOLON
-    | struct_decl
+      preprocessor { $$ = NULL; }
+    | function { $$ = $1; }
+    | var_decl SEMICOLON { $$ = $1; }
+    | struct_decl { $$ = NULL; }
 ;
 
 struct_decl:
@@ -111,23 +132,35 @@ preprocessor:
 ;
 
 function:
-    type_specifier IDENTIFIER LPAREN params RPAREN LBRACE {
-        inserirSimbolo($2, $1, FUNCAO, 0, -1, yylineno, 0, nivel_escopo, TIPO_ESCOPO_GLOBAL);
+    type_specifier IDENTIFIER LPAREN params RPAREN
+    {
+        inserirSimbolo($2, $1, FUNCAO, 0, -1, yylineno, 0, nivel_escopo, tipoEscopoAtual(), NULL);
+    }
+    function_body
+    {
+        $$ = criarNoFuncao($2, $1, $4, $7);
+    }
+;
+
+function_body:
+    LBRACE {
         criarEscopoLocal();
-        tipo_escopo_atual = TIPO_ESCOPO_FUNCAO;
-    } stmt_list RBRACE {
+        empilhaTipoEscopo(TIPO_ESCOPO_FUNCAO);
+    } stmt_list RBRACE
+    {
         destruirEscopoLocal();
-        tipo_escopo_atual = TIPO_ESCOPO_GLOBAL;
+        desempilhaTipoEscopo();
+        $$ = criarNoCompoundStmt($3);
     }
 ;
 
 type_specifier:
-    TYPE_INT        { $$ = TIPO_INT; current_decl_type = TIPO_INT; }
-    | TYPE_CHAR     { $$ = TIPO_CHAR; current_decl_type = TIPO_CHAR; }
-    | TYPE_FLOAT    { $$ = TIPO_FLOAT; current_decl_type = TIPO_FLOAT; }
-    | TYPE_DOUBLE   { $$ = TIPO_DOUBLE; current_decl_type = TIPO_DOUBLE; }
-    | TYPE_VOID     { $$ = TIPO_VOID; current_decl_type = TIPO_VOID; }
-    | KW_STRUCT IDENTIFIER { $$ = TIPO_OBJETO; current_decl_type = TIPO_OBJETO; }
+    TYPE_INT        { $$ = TIPO_INT; current_decl_type = TIPO_INT; current_struct_name[0] = '\0'; }
+    | TYPE_CHAR     { $$ = TIPO_CHAR; current_decl_type = TIPO_CHAR; current_struct_name[0] = '\0'; }
+    | TYPE_FLOAT    { $$ = TIPO_FLOAT; current_decl_type = TIPO_FLOAT; current_struct_name[0] = '\0'; }
+    | TYPE_DOUBLE   { $$ = TIPO_DOUBLE; current_decl_type = TIPO_DOUBLE; current_struct_name[0] = '\0'; }
+    | TYPE_VOID     { $$ = TIPO_VOID; current_decl_type = TIPO_VOID; current_struct_name[0] = '\0'; }
+    | KW_STRUCT IDENTIFIER { $$ = TIPO_OBJETO; current_decl_type = TIPO_OBJETO; strncpy(current_struct_name, $2, 31); current_struct_name[31] = '\0'; }
     | KW_CONST type_specifier { $$ = $2; }
     | KW_SIGNED type_specifier { $$ = $2; }
     | KW_UNSIGNED type_specifier { $$ = $2; }
@@ -138,73 +171,139 @@ type_specifier:
 ;
 
 params:
-    param_list
-    | /* empty */
+    param_list { $$ = $1; }
+    | /* empty */ { $$ = NULL; }
 ;
 
 param_list:
     param_decl
     | param_list COMMA param_decl
+        {
+            NoAST *atual = $1;
+            if (atual == NULL) {
+                $$ = $3;
+            } else {
+                while (atual->proximo)
+                    atual = atual->proximo;
+                atual->proximo = $3;
+                $$ = $1;
+            }
+        }
 ;
 
 param_decl:
     type_specifier IDENTIFIER {
-        tipo_escopo_atual = TIPO_ESCOPO_FUNCAO;
-        inserirSimbolo($2, $1, PARAMETRO, 0, 0, yylineno, 0, nivel_escopo, tipo_escopo_atual);
+        int tamanho = 0;
+        switch(current_decl_type) {
+            case TIPO_INT:    tamanho = 4; break;
+            case TIPO_FLOAT:  tamanho = 4; break;
+            case TIPO_DOUBLE: tamanho = 8; break;
+            case TIPO_CHAR:   tamanho = 1; break;
+            default:          tamanho = 0; break;
+        }
+        inserirSimbolo($2, $1, PARAMETRO, tamanho, 0, yylineno, 0, nivel_escopo, tipoEscopoAtual(), NULL);
         $$ = criarNoDeclaracaoVar($2, $1, NULL);
     }
 ;
 
 compound_stmt:
-    LBRACE { criarEscopoLocal(); } stmt_list RBRACE { destruirEscopoLocal(); $$ = criarNoCompoundStmt($3); }
+    LBRACE { criarEscopoLocal();} stmt_list RBRACE {
+        destruirEscopoLocal();
+        // Remover blocos que são corpo de comandos de controle
+        NoAST *lista = $3;
+        NoAST *atual = lista;
+        while (atual) {
+            if (atual->tipo_no == NODE_COMPOUND_STMT && atual->pai_controlador) {
+                lista = removerNoDaLista(lista, atual);
+                // Não avance o ponteiro, pois já pulou o nó
+            }
+            atual = atual->proximo;
+        }
+        $$ = criarNoCompoundStmt(lista);
+    }
 ;
 
 stmt_list:
     /* vazio */ { $$ = NULL; }
     | stmt_list stmt {
-        NoAST *head = $1;
-        if (head == NULL) {
+        if (
+            $2 && $2->tipo_no == NODE_COMPOUND_STMT &&
+            $2->pai_controlador
+        ) {
+            $$ = $1;
+        } else if ($2 == NULL) {
+            $$ = $1;
+        } else if ($1 == NULL) {
             $$ = $2;
         } else {
-            NoAST *current = head;
+            NoAST *current = $1;
             while (current->proximo != NULL) {
                 current = current->proximo;
             }
             current->proximo = $2;
-            $$ = head;
+            $$ = $1;
         }
     }
 ;
 
 if_block:
-    { criarEscopoLocal(); tipo_escopo_atual = TIPO_ESCOPO_IF; }
+    { criarEscopoLocal(); empilhaTipoEscopo(TIPO_ESCOPO_IF); }
     stmt
-    { destruirEscopoLocal(); $$ = $2; }
+    { destruirEscopoLocal(); $$ = $2; desempilhaTipoEscopo(); }
 ;
 
 else_block:
-    { criarEscopoLocal(); tipo_escopo_atual = TIPO_ESCOPO_ELSE; }
+    { criarEscopoLocal(); empilhaTipoEscopo(TIPO_ESCOPO_ELSE); }
     stmt
-    { destruirEscopoLocal(); $$ = $2; }
+    { destruirEscopoLocal(); $$ = $2; desempilhaTipoEscopo(); }
 ;
 
 stmt:
-      expr SEMICOLON                 { $$ = $1; }
+    var_decl SEMICOLON           { $$ = $1; }
+    | expr SEMICOLON             { $$ = $1; }
     | KW_RETURN expr SEMICOLON       { $$ = criarNoReturn($2); }
     | KW_IF LPAREN expr RPAREN if_block %prec IF_WITHOUT_ELSE
         { $$ = criarNoIf($3, $5, NULL); }
     | KW_IF LPAREN expr RPAREN if_block KW_ELSE else_block
         { $$ = criarNoIf($3, $5, $7); }
-    | KW_WHILE LPAREN expr RPAREN { criarEscopoLocal(); tipo_escopo_atual = TIPO_ESCOPO_WHILE; } stmt
-        { destruirEscopoLocal(); $$ = criarNoWhile($3, $6); }
-    | KW_FOR LPAREN { criarEscopoLocal(); tipo_escopo_atual = TIPO_ESCOPO_FOR; } for_init SEMICOLON for_cond SEMICOLON for_iter RPAREN stmt
-        { $$ = criarNoFor($4, $6, $8, $10); destruirEscopoLocal(); }
-    | KW_SWITCH LPAREN expr RPAREN { criarEscopoLocal(); tipo_escopo_atual = TIPO_ESCOPO_SWITCH; } switch_body
-        { destruirEscopoLocal(); $$ = criarNoSwitch($3, $6); }
+    | KW_WHILE LPAREN expr RPAREN {
+            criarEscopoLocal();
+            empilhaTipoEscopo(TIPO_ESCOPO_WHILE);
+        } stmt {
+            destruirEscopoLocal();
+            desempilhaTipoEscopo();
+            $$ = criarNoWhile($3, $6);
+        }
+    | iteration_stmt               { $$ = $1; }
+    | KW_SWITCH LPAREN expr RPAREN {
+            criarEscopoLocal();
+            empilhaTipoEscopo(TIPO_ESCOPO_SWITCH);
+        } switch_body {
+            destruirEscopoLocal();
+            desempilhaTipoEscopo();
+            $$ = criarNoSwitch($3, $6);
+        }
     | compound_stmt                { $$ = $1; }
-    | var_decl SEMICOLON           { $$ = $1; }
     | KW_BREAK SEMICOLON           { $$ = criarNoBreak(); }
     | KW_CONTINUE SEMICOLON        { $$ = criarNoContinue(); }
+;
+
+iteration_stmt:
+    KW_FOR LPAREN
+        { criarEscopoLocal(); empilhaTipoEscopo(TIPO_ESCOPO_FOR); }
+    for_init    SEMICOLON
+    for_cond    SEMICOLON
+    for_iter    RPAREN
+    stmt
+    {
+        NoAST *bloco = $10;
+        NoAST *no_for = criarNoFor($4, $6, $8, bloco);
+        if (bloco && bloco->tipo_no == NODE_COMPOUND_STMT)
+            bloco->pai_controlador = no_for;
+        $$ = no_for;
+        destruirEscopoLocal();
+        desempilhaTipoEscopo();
+    }
 ;
 
 for_init:
@@ -309,16 +408,21 @@ declarator:
             $$ = criarNoErro();
         } else {
             int tamanho = 0;
-            switch(current_decl_type) {
-                case TIPO_INT:    tamanho = 4; break;
-                case TIPO_FLOAT:  tamanho = 4; break;
-                case TIPO_DOUBLE: tamanho = 8; break;
-                case TIPO_CHAR:   tamanho = 1; break;
-                default:          tamanho = 0; break;
+            if (current_decl_type == TIPO_OBJETO) {
+                inserirSimbolo($1, current_decl_type, VARIAVEL, tamanho, 0, yylineno, 0, nivel_escopo, tipoEscopoAtual(), current_struct_name);
+            } else {
+                switch(current_decl_type) {
+                    case TIPO_INT:    tamanho = 4; break;
+                    case TIPO_FLOAT:  tamanho = 4; break;
+                    case TIPO_DOUBLE: tamanho = 8; break;
+                    case TIPO_CHAR:   tamanho = 1; break;
+                    default:          tamanho = 0; break;
+                }
+                inserirSimbolo($1, current_decl_type, VARIAVEL, tamanho, 0, yylineno, 0, nivel_escopo, tipoEscopoAtual(), NULL);
             }
-            inserirSimbolo($1, current_decl_type, VARIAVEL, tamanho, 0, yylineno, 0, nivel_escopo, tipo_escopo_atual);
             $$ = criarNoDeclaracaoVar($1, current_decl_type, NULL);
         }
+        current_struct_name[0] = '\0';
     }
     | IDENTIFIER OP_ASSIGN expr {
         Simbolo *s = buscarSimboloNoEscopoAtual($1);
@@ -346,15 +450,15 @@ declarator:
                         yylineno);
                 $$ = criarNoErro();
             } else {
-                inserirSimbolo($1, current_decl_type, VARIAVEL, tamanho, 0, yylineno, 0, nivel_escopo, tipo_escopo_atual);
-                $$ = criarNoDeclaracaoVar($1, current_decl_type, $3);
+                inserirSimbolo($1, current_decl_type, VARIAVEL, tamanho, 0, yylineno, 0, nivel_escopo, tipoEscopoAtual(), NULL);
             }
-
+            $$ = criarNoDeclaracaoVar($1, current_decl_type, $3);
             Simbolo *inserted_s = buscarSimbolo($1);
             if (inserted_s) {
                 inserted_s->linha_ultimo_uso = yylineno;
             }
         }
+        current_struct_name[0] = '\0';
     }
     | IDENTIFIER LBRACKET expr RBRACKET {
         Simbolo *s = buscarSimboloNoEscopoAtual($1);
@@ -371,12 +475,18 @@ declarator:
                 case TIPO_CHAR:   tamanho = 1; break;
                 default:          tamanho = 0; break;
             }
-            if ($3 && $3->tipo_no == NODE_LITERAL && $3->tipo_dado == TIPO_INT) {
-                tam_array = $3->data.literal.val_int * tamanho; // Calcula o tamanho total do array em bytes
+            if (current_decl_type == TIPO_OBJETO) {
+                inserirSimbolo($1, current_decl_type, VARIAVEL, tamanho, 0, yylineno, 0, nivel_escopo, tipoEscopoAtual(), current_struct_name);
+            } else {
+                if ($3 && $3->tipo_no == NODE_LITERAL && $3->tipo_dado == TIPO_INT) {
+                    tam_array = $3->data.literal.val_int * tamanho; // Calcula o tamanho total do array em bytes
+                }
+                inserirSimbolo($1, current_decl_type, VARIAVEL, tam_array, 1, yylineno, 0, nivel_escopo, tipoEscopoAtual(), NULL);
+
             }
-            inserirSimbolo($1, current_decl_type, VARIAVEL, tam_array, 1, yylineno, 0, nivel_escopo, tipo_escopo_atual);
             $$ = criarNoDeclaracaoVarArray($1, current_decl_type, $3);
         }
+        current_struct_name[0] = '\0';
     }
     | IDENTIFIER OP_ASSIGN LBRACE field_assign_list RBRACE {
         Simbolo *s = buscarSimboloNoEscopoAtual($1);
@@ -384,10 +494,15 @@ declarator:
             yyerror("Redeclaração de variável.");
             $$ = criarNoErro();
         } else {
-            int tamanho = 0; // O tamanho precisa refletir o tamanho total da struct
-            inserirSimbolo($1, current_decl_type, VARIAVEL, tamanho, 0, yylineno, 0, nivel_escopo, tipo_escopo_atual);
+            int tamanho = 0;
+            if (current_decl_type == TIPO_OBJETO) {
+                inserirSimbolo($1, current_decl_type, VARIAVEL, tamanho, 0, yylineno, 0, nivel_escopo, tipoEscopoAtual(), current_struct_name);
+            } else {
+                inserirSimbolo($1, current_decl_type, VARIAVEL, tamanho, 0, yylineno, 0, nivel_escopo, tipoEscopoAtual(), NULL);
+            }
             $$ = criarNoDeclaracaoVar($1, current_decl_type, $4);
         }
+        current_struct_name[0] = '\0';
     }
     | IDENTIFIER LBRACKET expr RBRACKET OP_ASSIGN LBRACE expr_list RBRACE {
         Simbolo *s = buscarSimboloNoEscopoAtual($1);
@@ -407,7 +522,7 @@ declarator:
             if ($3 && $3->tipo_no == NODE_LITERAL && $3->tipo_dado == TIPO_INT) {
                 tam_array = $3->data.literal.val_int * tamanho;
             }
-            inserirSimbolo($1, current_decl_type, VARIAVEL, tam_array, 1, yylineno, 0, nivel_escopo, tipo_escopo_atual);
+            inserirSimbolo($1, current_decl_type, VARIAVEL, tam_array, 1, yylineno, 0, nivel_escopo, tipoEscopoAtual(), NULL);
             $$ = criarNoDeclaracaoVarArray($1, current_decl_type, $3);
         }
     }
@@ -431,7 +546,7 @@ declarator:
                 case TIPO_CHAR:   tamanho = 1; break;
                 default:          tamanho = 0; break;
             }
-            inserirSimbolo($1, current_decl_type, VARIAVEL, num_elementos*tamanho, 1, yylineno, 0, nivel_escopo, tipo_escopo_atual);
+            inserirSimbolo($1, current_decl_type, VARIAVEL, num_elementos*tamanho, 1, yylineno, 0, nivel_escopo, tipoEscopoAtual(), NULL);
             $$ = criarNoDeclaracaoVarArray($1, current_decl_type, NULL);
         }
     }
@@ -441,9 +556,8 @@ declarator:
             yyerror("Redeclaração de array.");
             $$ = criarNoErro();
         } else {
-            int tamanho = sizeof($5) + 1; // +1 para o terminador nulo
-            printf("Tamanho do array de string: %d\tstring: %s\n", tamanho, $5);
-            inserirSimbolo($1, current_decl_type, VARIAVEL, tamanho, 1, yylineno, 0, nivel_escopo, tipo_escopo_atual);
+            int tamanho = strlen($5) + 1; // +1 para o terminador nulo
+            inserirSimbolo($1, current_decl_type, VARIAVEL, tamanho, 1, yylineno, 0, nivel_escopo, tipoEscopoAtual(), NULL);
             $$ = criarNoDeclaracaoVarArray($1, current_decl_type, criarNoString($5));
         }
     }
@@ -632,35 +746,55 @@ void yyerror(const char *s) {
 }
 
 void inicializarTabelaSimbolosGlobais() {
-    inserirSimbolo("printf", TIPO_INT, FUNCAO, 0, -1, 0, 0, ESCOPO_GLOBAL, TIPO_ESCOPO_GLOBAL);
-    inserirSimbolo("scanf", TIPO_INT, FUNCAO, 0, -1, 0, 0, ESCOPO_GLOBAL, TIPO_ESCOPO_GLOBAL);
+    inserirSimbolo("printf", TIPO_INT, FUNCAO, 0, -1, 0, 0, ESCOPO_GLOBAL, TIPO_ESCOPO_GLOBAL, NULL);
+    inserirSimbolo("scanf", TIPO_INT, FUNCAO, 0, -1, 0, 0, ESCOPO_GLOBAL, TIPO_ESCOPO_GLOBAL, NULL);
 }
 
 int main(int argc, char *argv[]) {
     criarEscopoLocal(); // escopo global
+    empilhaTipoEscopo(TIPO_ESCOPO_GLOBAL);
     inicializarTabelaSimbolosGlobais();
 
-    if (argc > 1) {
-        yyin = fopen(argv[1], "r");
-        if (!yyin) {
-            perror("Erro ao abrir arquivo");
-            return 1;
-        }
+    if (argc < 2) {
+        fprintf(stderr, "Uso: %s <arquivo_entrada.c> [arquivo_saida.ts]\n", argv[0]);
+        return 1;
     }
 
-    if (yyparse() == 0) {
-        printf("\n🎯 Análise sintática concluída com sucesso!\n");
-
-        //printf("\n📦 Tabela de símbolos:\n");
-        //imprimirTabela();
-
-        //printf("\n🌲 AST gerada:\n");
-        //imprimirAST(raiz_ast);
-
-        printf("\n");
-    } else {
-        printf("\n❌ Erros encontrados durante a análise sintática.\n");
+    yyin = fopen(argv[1], "r");
+    if (!yyin) {
+        perror("Erro ao abrir arquivo de entrada");
+        return 1;
     }
-    
+
+    yyparse();
+
+    extern int temErroSemantico;
+    if (temErroSemantico) {
+        fprintf(stderr, "Código TypeScript não gerado devido a erro(s) semântico(s).\n");
+        return 1;
+    }
+
+    const char *outputPath = (argc > 2) ? argv[2] : "output.ts";
+
+    FILE *saida_ts = fopen(outputPath, "w");
+    if (!saida_ts) {
+        perror("Erro ao criar arquivo de saída");
+        return 1;
+    }
+
+    // Gerar código intermediário (IR)
+    FILE *saida_ir = fopen("intercode.ir", "w");
+    if (!saida_ir) {
+        perror("Erro ao criar arquivo de IR");
+        return 1;
+    }
+    gerarIR(raiz_ast, saida_ir);
+    fclose(saida_ir);
+    // imprimirASTComIndent(raiz_ast, 0);
+
+    VarDecl *decls = NULL;
+    gerarTypeScript(raiz_ast, saida_ts, &decls, 0);
+    fclose(saida_ts);
+
     return 0;
 }
