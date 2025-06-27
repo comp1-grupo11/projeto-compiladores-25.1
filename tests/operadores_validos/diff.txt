@@ -20,12 +20,22 @@
 >     let nao: boolean = !a;
 23d22
 < b--;
-27d25
+27,38c26,30
 < p.y = sub;
-33,38d30
-< v1p.y;
-< v2v0 + v1;
-< v3a != b++ || !v--2 < b;
-< v2v0 + v1;
-< v3a != b++ || !v--2 < b;
-< v3a != b++ || !v--2 < b;
+< // [Tipo de nó não implementado: 3]
+< // [Tipo de nó não implementado: 3]
+< // [Tipo de nó não implementado: 3]
+< // [Tipo de nó não implementado: 3]
+< return v[2];
+< // [Tipo de nó não implementado: 3]
+< // [Tipo de nó não implementado: 3]
+< // [Tipo de nó não implementado: 3]
+< // [Tipo de nó não implementado: 3]
+< // [Tipo de nó não implementado: 3]
+< // [Tipo de nó não implementado: 3]
+---
+>     v0p.x;
+>     v1p.y;
+>     v2v0 + v1;
+>     v3a != b++ || !v--2 < b;
+>     return v2;

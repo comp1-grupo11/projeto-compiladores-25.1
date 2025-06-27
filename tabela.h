@@ -28,6 +28,7 @@ typedef struct simbolo
     CategoriaSimbolo categoria;
     int tamanho_bytes;
     int dimensao;
+    int tam_array; // adicionado para armazenar o tamanho do array ou -1 se não for array
     int linha_declaracao;
     int linha_ultimo_uso;
     int endereco;

@@ -1100,6 +1100,33 @@ NoAST *criarNoDefault(NoAST *statement_list)
     return no;
 }
 
+NoAST *criarNoDeclaracaoVarArrayComInicializacao(char *nome, Tipo tipo, NoAST *tamanho, NoAST *valores)
+{
+    NoAST *no = alocarNoAST(NODE_DECLARATION);
+    no->tipo_dado = tipo;
+    no->data.decl_info.nome_declaracao = strdup(nome);
+    if (no->data.decl_info.nome_declaracao == NULL)
+    {
+        fprintf(stderr, "Erro de alocacao de memoria para nome do array '%s' na declaracao com inicializacao na linha %d.\n", nome, yylineno);
+        liberarAST(no);
+        exit(EXIT_FAILURE);
+    }
+    no->data.decl_info.inicializacao_expr = valores;
+    no->data.decl_info.tamanho_array = (tamanho != NULL) ? tamanho : NULL;
+    return no;
+}
+
+NoAST *criarNoArrayLiteral(NoAST *valores)
+{
+    NoAST *no = alocarNoAST(NODE_ARRAY_LITERAL);
+    no->tipo_dado = TIPO_INT; // tipo default do array, pode ajustar depois se quiser
+    no->esquerda = valores;   // lista de valores
+    no->direita = NULL;
+    no->proximo = NULL;
+    no->pai_controlador = NULL;
+    return no;
+}
+
 NoAST *removerNoDaLista(NoAST *head, NoAST *alvo)
 {
     if (!head)
@@ -1117,6 +1144,15 @@ NoAST *removerNoDaLista(NoAST *head, NoAST *alvo)
         atual = atual->proximo;
     }
     return head;
+}
+
+NoAST *criarNoAcessoArray(NoAST *array, NoAST *indice)
+{
+    NoAST *no = alocarNoAST(NODE_ARRAY_ACCESS);
+    no->esquerda = array;     // o array
+    no->direita = indice;     // o índice de acesso
+    no->tipo_dado = TIPO_INT; // tipo padrão, ou pode tentar inferir depois
+    return no;
 }
 
 // Função utilitária para copiar um nó isolado da AST (sem filhos)

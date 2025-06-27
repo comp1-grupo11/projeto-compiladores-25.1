@@ -1,77 +1,46 @@
+Erro sintático linha 37: Atribuição só é permitida para variáveis, campos ou elementos de array.
+Erro sintático linha 38: Atribuição só é permitida para variáveis, campos ou elementos de array.
+Erro sintático linha 39: Atribuição só é permitida para variáveis, campos ou elementos de array.
+Erro sintático linha 40: Atribuição só é permitida para variáveis, campos ou elementos de array.
 Tipo de nó AST não suportado: 19
-[NODE_IDENTIFIER] nome_id='a' endereco=0x58cd3190f1b0
-[NODE_IDENTIFIER] nome_id='b' endereco=0x58cd3190f240
-[NODE_IDENTIFIER] nome_id='a' endereco=0x58cd3190f460
-[NODE_IDENTIFIER] nome_id='b' endereco=0x58cd3190f4f0
-[NODE_IDENTIFIER] nome_id='a' endereco=0x58cd3190f710
-[NODE_IDENTIFIER] nome_id='b' endereco=0x58cd3190f7a0
-[NODE_IDENTIFIER] nome_id='a' endereco=0x58cd3190f9c0
-[NODE_IDENTIFIER] nome_id='b' endereco=0x58cd3190fa50
-[NODE_IDENTIFIER] nome_id='a' endereco=0x58cd3190fc70
-[NODE_IDENTIFIER] nome_id='b' endereco=0x58cd3190fd00
-[NODE_IDENTIFIER] nome_id='soma' endereco=0x58cd3190ff70
-[NODE_IDENTIFIER] nome_id='sub' endereco=0x58cd319101c0
-[NODE_IDENTIFIER] nome_id='mul' endereco=0x58cd31910410
-[NODE_IDENTIFIER] nome_id='div' endereco=0x58cd31910660
-[NODE_IDENTIFIER] nome_id='a' endereco=0x58cd31910860
-[NODE_IDENTIFIER] nome_id='b' endereco=0x58cd319108f0
-[NODE_IDENTIFIER] nome_id='a' endereco=0x58cd31910b10
-[NODE_IDENTIFIER] nome_id='b' endereco=0x58cd31910ba0
-[NODE_IDENTIFIER] nome_id='a' endereco=0x58cd31910dc0
-[NODE_IDENTIFIER] nome_id='b' endereco=0x58cd31910e50
-[NODE_IDENTIFIER] nome_id='a' endereco=0x58cd31911070
-[NODE_IDENTIFIER] nome_id='b' endereco=0x58cd31911100
-[NODE_IDENTIFIER] nome_id='a' endereco=0x58cd31911320
-[NODE_IDENTIFIER] nome_id='b' endereco=0x58cd319113b0
-[NODE_IDENTIFIER] nome_id='a' endereco=0x58cd319115d0
-[NODE_IDENTIFIER] nome_id='b' endereco=0x58cd31911660
-[NODE_IDENTIFIER] nome_id='a' endereco=0x58cd31911880
-[NODE_IDENTIFIER] nome_id='b' endereco=0x58cd31911910
-[NODE_IDENTIFIER] nome_id='a' endereco=0x58cd31911b30
-[NODE_IDENTIFIER] nome_id='b' endereco=0x58cd31911bc0
-[NODE_IDENTIFIER] nome_id='a' endereco=0x58cd31911de0
-[NODE_IDENTIFIER] nome_id='a' endereco=0x58cd31911fe0
-[NODE_IDENTIFIER] nome_id='b' endereco=0x58cd319120e0
-[NODE_IDENTIFIER] nome_id='b' endereco=0x58cd319120e0
-[NODE_IDENTIFIER] nome_id='p' endereco=0x58cd31912320
-[NODE_IDENTIFIER] nome_id='soma' endereco=0x58cd319123d0
-[NODE_IDENTIFIER] nome_id='p' endereco=0x58cd319124d0
-[NODE_IDENTIFIER] nome_id='sub' endereco=0x58cd31912580
-[NODE_IDENTIFIER] nome_id='p' endereco=0x58cd319124d0
-[NODE_IDENTIFIER] nome_id='sub' endereco=0x58cd31912580
-[NODE_IDENTIFIER] nome_id='v' endereco=0x58cd31912810
-[NODE_IDENTIFIER] nome_id='p' endereco=0x58cd31912980
-[NODE_IDENTIFIER] nome_id='v' endereco=0x58cd31912b10
-[NODE_IDENTIFIER] nome_id='p' endereco=0x58cd31912c80
-[NODE_IDENTIFIER] nome_id='v' endereco=0x58cd31912e10
-[NODE_IDENTIFIER] nome_id='v' endereco=0x58cd31912f80
-[NODE_IDENTIFIER] nome_id='v' endereco=0x58cd319130f0
-[NODE_IDENTIFIER] nome_id='v' endereco=0x58cd31913340
-[NODE_IDENTIFIER] nome_id='a' endereco=0x58cd319134b0
-[NODE_IDENTIFIER] nome_id='b' endereco=0x58cd31913540
-[NODE_IDENTIFIER] nome_id='v' endereco=0x58cd319136b0
-[NODE_IDENTIFIER] nome_id='b' endereco=0x58cd31913890
-[NODE_IDENTIFIER] nome_id='v' endereco=0x58cd31913ae0
-[NODE_IDENTIFIER] nome_id='v' endereco=0x58cd31912b10
-[NODE_IDENTIFIER] nome_id='p' endereco=0x58cd31912c80
-[NODE_IDENTIFIER] nome_id='v' endereco=0x58cd31912e10
-[NODE_IDENTIFIER] nome_id='v' endereco=0x58cd31912f80
-[NODE_IDENTIFIER] nome_id='v' endereco=0x58cd319130f0
-[NODE_IDENTIFIER] nome_id='v' endereco=0x58cd31913340
-[NODE_IDENTIFIER] nome_id='a' endereco=0x58cd319134b0
-[NODE_IDENTIFIER] nome_id='b' endereco=0x58cd31913540
-[NODE_IDENTIFIER] nome_id='v' endereco=0x58cd319136b0
-[NODE_IDENTIFIER] nome_id='b' endereco=0x58cd31913890
-[NODE_IDENTIFIER] nome_id='v' endereco=0x58cd31912e10
-[NODE_IDENTIFIER] nome_id='v' endereco=0x58cd31912f80
-[NODE_IDENTIFIER] nome_id='v' endereco=0x58cd319130f0
-[NODE_IDENTIFIER] nome_id='v' endereco=0x58cd31913340
-[NODE_IDENTIFIER] nome_id='a' endereco=0x58cd319134b0
-[NODE_IDENTIFIER] nome_id='b' endereco=0x58cd31913540
-[NODE_IDENTIFIER] nome_id='v' endereco=0x58cd319136b0
-[NODE_IDENTIFIER] nome_id='b' endereco=0x58cd31913890
-[NODE_IDENTIFIER] nome_id='v' endereco=0x58cd31913340
-[NODE_IDENTIFIER] nome_id='a' endereco=0x58cd319134b0
-[NODE_IDENTIFIER] nome_id='b' endereco=0x58cd31913540
-[NODE_IDENTIFIER] nome_id='v' endereco=0x58cd319136b0
-[NODE_IDENTIFIER] nome_id='b' endereco=0x58cd31913890
+[NODE_IDENTIFIER] nome_id='a'
+[NODE_IDENTIFIER] nome_id='b'
+[NODE_IDENTIFIER] nome_id='a'
+[NODE_IDENTIFIER] nome_id='b'
+[NODE_IDENTIFIER] nome_id='a'
+[NODE_IDENTIFIER] nome_id='b'
+[NODE_IDENTIFIER] nome_id='a'
+[NODE_IDENTIFIER] nome_id='b'
+[NODE_IDENTIFIER] nome_id='a'
+[NODE_IDENTIFIER] nome_id='b'
+[NODE_IDENTIFIER] nome_id='soma'
+[NODE_IDENTIFIER] nome_id='sub'
+[NODE_IDENTIFIER] nome_id='mul'
+[NODE_IDENTIFIER] nome_id='div'
+[NODE_IDENTIFIER] nome_id='a'
+[NODE_IDENTIFIER] nome_id='b'
+[NODE_IDENTIFIER] nome_id='a'
+[NODE_IDENTIFIER] nome_id='b'
+[NODE_IDENTIFIER] nome_id='a'
+[NODE_IDENTIFIER] nome_id='b'
+[NODE_IDENTIFIER] nome_id='a'
+[NODE_IDENTIFIER] nome_id='b'
+[NODE_IDENTIFIER] nome_id='a'
+[NODE_IDENTIFIER] nome_id='b'
+[NODE_IDENTIFIER] nome_id='a'
+[NODE_IDENTIFIER] nome_id='b'
+[NODE_IDENTIFIER] nome_id='a'
+[NODE_IDENTIFIER] nome_id='b'
+[NODE_IDENTIFIER] nome_id='a'
+[NODE_IDENTIFIER] nome_id='b'
+[NODE_IDENTIFIER] nome_id='a'
+[NODE_IDENTIFIER] nome_id='a'
+[NODE_IDENTIFIER] nome_id='b'
+[NODE_IDENTIFIER] nome_id='b'
+[NODE_IDENTIFIER] nome_id='p'
+[NODE_IDENTIFIER] nome_id='soma'
+[NODE_IDENTIFIER] nome_id='p'
+[NODE_IDENTIFIER] nome_id='sub'
+[NODE_IDENTIFIER] nome_id='p'
+[NODE_IDENTIFIER] nome_id='sub'
+[NODE_IDENTIFIER] nome_id='v'

@@ -435,9 +435,15 @@ declarator:
             }
             if ($3 && $3->tipo_no == NODE_LITERAL && $3->tipo_dado == TIPO_INT) {
                 tam_array = $3->data.literal.val_int;
+            } else if ($7) {
+                int contador = 0;
+                NoAST *tmp = $7;
+                while (tmp) { contador++; tmp = tmp->proximo; }
+                tam_array = contador;
             }
             inserirSimbolo($1, current_decl_type, VARIAVEL, tamanho, tam_array, yylineno, 0, ESCOPO_LOCAL, NULL);
-            $$ = criarNoDeclaracaoVarArray($1, current_decl_type, $3);
+            NoAST *arrayLit = criarNoArrayLiteral($7);
+            $$ = criarNoDeclaracaoVarArrayComInicializacao($1, current_decl_type, $3, arrayLit);
         }
     }
     | IDENTIFIER LBRACKET RBRACKET OP_ASSIGN LBRACE expr_list RBRACE {
@@ -447,15 +453,12 @@ declarator:
             $$ = criarNoErro();
         } else {
             int tamanho = 0;
-            switch(current_decl_type) {
-                case TIPO_INT:    tamanho = 4; break;
-                case TIPO_FLOAT:  tamanho = 4; break;
-                case TIPO_DOUBLE: tamanho = 8; break;
-                case TIPO_CHAR:   tamanho = 1; break;
-                default:          tamanho = 0; break;
-            }
-            inserirSimbolo($1, current_decl_type, VARIAVEL, tamanho, -1, yylineno, 0, ESCOPO_LOCAL, NULL);
-            $$ = criarNoDeclaracaoVarArray($1, current_decl_type, NULL);
+            int contador = 0;
+            NoAST *tmp = $6;
+            while (tmp) { contador++; tmp = tmp->proximo; }
+            inserirSimbolo($1, current_decl_type, VARIAVEL, tamanho, contador, yylineno, 0, ESCOPO_LOCAL, NULL);
+            NoAST *arrayLit = criarNoArrayLiteral($6);
+            $$ = criarNoDeclaracaoVarArrayComInicializacao($1, current_decl_type, NULL, arrayLit);
         }
     }
     | IDENTIFIER LBRACKET RBRACKET OP_ASSIGN STRING_LITERAL {
@@ -567,7 +570,7 @@ expr:
     | expr DOT IDENTIFIER OP_ASSIGN expr {
         $$ = criarNoAtribuicaoCampo($1, $3, $5);
     }
-    | expr LBRACKET expr RBRACKET { $$ = criarNoOp(OP_INDEX_TYPE, $1, $3); }
+    | expr LBRACKET expr RBRACKET { $$ = criarNoAcessoArray($1, $3); }
     | IDENTIFIER OP_INC %prec POSTFIX_LEVEL {
         Simbolo *s = buscarSimbolo($1);
         if (!s) { yyerror("Identificador não declarado para incremento."); $$ = criarNoErro(); }

@@ -25,17 +25,17 @@
 16a25,26
 > 
 >   // Loop com switch aninhado
-21,46c31
+21c31
 < // [Tipo de nó não implementado: 14]
-<   case 1:
-<   case 2:
-< console.log("Resíduo baixo");
+---
+>         break;
+25c35
 < // [Tipo de nó não implementado: 14]
-<   default:
-< console.log("Outro resíduo");
-< }
+---
+>         break;
+29d38
 < let p1: Point = { x: 0, y: 0 };
-< }
+31,76c40,42
 < switch (j % 5) {
 <   case 0:
 < console.log("Múltiplo de 5");
@@ -52,13 +52,14 @@
 <   case 0:
 < console.log("Múltiplo de 5");
 < // [Tipo de nó não implementado: 14]
----
->         break;
-50c35
+<   case 1:
+<   case 2:
+< console.log("Resíduo baixo");
 < // [Tipo de nó não implementado: 14]
----
->         break;
-55,76c40,42
+<   default:
+< console.log("Outro resíduo");
+< }
+< }
 < switch (j % 5) {
 <   case 0:
 < console.log("Múltiplo de 5");

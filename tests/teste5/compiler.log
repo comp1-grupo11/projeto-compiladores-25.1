@@ -1,24 +1,24 @@
 Tipo de nó AST não suportado: 19
-[NODE_IDENTIFIER] nome_id='a' endereco=0x5fbcce718f30
-[NODE_IDENTIFIER] nome_id='b' endereco=0x5fbcce718fc0
+[NODE_IDENTIFIER] nome_id='a'
+[NODE_IDENTIFIER] nome_id='b'
 [DEBUG] Arg 0: tipo_no=1
 [DEBUG] Arg 1: tipo_no=1
-[NODE_IDENTIFIER] nome_id='resultado' endereco=0x5fbcce719650
-[NODE_IDENTIFIER] nome_id='resultado' endereco=0x5fbcce719e70
-[NODE_IDENTIFIER] nome_id='resultado' endereco=0x5fbcce719830
-[NODE_IDENTIFIER] nome_id='i' endereco=0x5fbcce719d10
-[NODE_IDENTIFIER] nome_id='i' endereco=0x5fbcce71a130
-[NODE_IDENTIFIER] nome_id='i' endereco=0x5fbcce71a1a0
-[NODE_IDENTIFIER] nome_id='resultado' endereco=0x5fbcce71aa10
-[NODE_IDENTIFIER] nome_id='i' endereco=0x5fbcce71ab30
-[NODE_IDENTIFIER] nome_id='resultado' endereco=0x5fbcce71aa10
-[NODE_IDENTIFIER] nome_id='i' endereco=0x5fbcce71ab30
-[NODE_IDENTIFIER] nome_id='i' endereco=0x5fbcce719d10
-[NODE_IDENTIFIER] nome_id='i' endereco=0x5fbcce71a130
-[NODE_IDENTIFIER] nome_id='i' endereco=0x5fbcce71a1a0
-[NODE_IDENTIFIER] nome_id='resultado' endereco=0x5fbcce71aa10
-[NODE_IDENTIFIER] nome_id='i' endereco=0x5fbcce71ab30
-[NODE_IDENTIFIER] nome_id='resultado' endereco=0x5fbcce71aa10
-[NODE_IDENTIFIER] nome_id='i' endereco=0x5fbcce71ab30
-[NODE_IDENTIFIER] nome_id='resultado' endereco=0x5fbcce71aa10
-[NODE_IDENTIFIER] nome_id='i' endereco=0x5fbcce71ab30
+[NODE_IDENTIFIER] nome_id='resultado'
+[NODE_IDENTIFIER] nome_id='resultado'
+[NODE_IDENTIFIER] nome_id='resultado'
+[NODE_IDENTIFIER] nome_id='i'
+[NODE_IDENTIFIER] nome_id='i'
+[NODE_IDENTIFIER] nome_id='i'
+[NODE_IDENTIFIER] nome_id='resultado'
+[NODE_IDENTIFIER] nome_id='i'
+[NODE_IDENTIFIER] nome_id='resultado'
+[NODE_IDENTIFIER] nome_id='i'
+[NODE_IDENTIFIER] nome_id='i'
+[NODE_IDENTIFIER] nome_id='i'
+[NODE_IDENTIFIER] nome_id='i'
+[NODE_IDENTIFIER] nome_id='resultado'
+[NODE_IDENTIFIER] nome_id='i'
+[NODE_IDENTIFIER] nome_id='resultado'
+[NODE_IDENTIFIER] nome_id='i'
+[NODE_IDENTIFIER] nome_id='resultado'
+[NODE_IDENTIFIER] nome_id='i'

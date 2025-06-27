@@ -198,6 +198,7 @@ void gerarTypeScript(NoAST *no, FILE *saida, VarDecl **decls, int ident, int isE
                 {
                     // Detecta atribuição composta do tipo i = i + 2; e transforma em i += 2;
                     NoAST *init = no->data.decl_info.inicializacao_expr;
+                    Simbolo *s = buscarSimbolo(no->data.decl_info.nome_declaracao);
                     if (init && init->tipo_no == NODE_OPERATOR &&
                         ((init->data.op_type == OP_ADD_TYPE || init->data.op_type == OP_SUB_TYPE || init->data.op_type == OP_MUL_TYPE || init->data.op_type == OP_DIV_TYPE) &&
                          init->esquerda && init->esquerda->tipo_no == NODE_IDENTIFIER &&
@@ -227,13 +228,32 @@ void gerarTypeScript(NoAST *no, FILE *saida, VarDecl **decls, int ident, int isE
                     }
                     else
                     {
-                        fprintf(saida, "let %s: %s", no->data.decl_info.nome_declaracao, ts_type(no->tipo_dado));
-                        if (no->data.decl_info.inicializacao_expr)
+                        // Ajustado: bloco único para declaração de arrays e outros tipos
+                        NoAST *init = no->data.decl_info.inicializacao_expr;
+                        Simbolo *s = buscarSimbolo(no->data.decl_info.nome_declaracao);
+                        if (init && init->tipo_no == NODE_ARRAY_LITERAL)
                         {
-                            fprintf(saida, " = ");
-                            gerarTypeScript(no->data.decl_info.inicializacao_expr, saida, decls, ident, 1);
+                            fprintf(saida, "let %s: number[] = [", no->data.decl_info.nome_declaracao);
+                            NoAST *elemento = init->esquerda;
+                            while (elemento)
+                            {
+                                gerarTypeScript(elemento, saida, decls, ident, 1);
+                                elemento = elemento->proximo;
+                                if (elemento)
+                                    fprintf(saida, ", ");
+                            }
+                            fprintf(saida, "];\n");
                         }
-                        fprintf(saida, ";\n");
+                        else
+                        {
+                            fprintf(saida, "let %s: %s", no->data.decl_info.nome_declaracao, ts_type(no->tipo_dado));
+                            if (init)
+                            {
+                                fprintf(saida, " = ");
+                                gerarTypeScript(init, saida, decls, ident, 1);
+                            }
+                            fprintf(saida, ";\n");
+                        }
                     }
                 }
                 adicionarDeclarada(decls, no->data.decl_info.nome_declaracao);
@@ -256,6 +276,18 @@ void gerarTypeScript(NoAST *no, FILE *saida, VarDecl **decls, int ident, int isE
                 gerarTypeScript(no->esquerda, saida, decls, ident, 1);
             }
             return;
+        case NODE_ARRAY_LITERAL:
+            fprintf(saida, "[");
+            NoAST *elem = no->esquerda;
+            while (elem)
+            {
+                gerarTypeScript(elem, saida, decls, ident, 1);
+                if (elem->proximo)
+                    fprintf(saida, ", ");
+                elem = elem->proximo;
+            }
+            fprintf(saida, "]");
+            break;
         case NODE_FUNCTION_CALL:
             if (strcmp(no->data.func_name, "printf") == 0)
             {
@@ -521,11 +553,33 @@ void gerarTypeScript(NoAST *no, FILE *saida, VarDecl **decls, int ident, int isE
                     fprintf(saida, "undefined");
                 }
             break;
+        case NODE_ARRAY_ACCESS:
+            gerarTypeScript(no->esquerda, saida, decls, ident, 1);
+            fprintf(saida, "[");
+            gerarTypeScript(no->direita, saida, decls, ident, 1);
+            fprintf(saida, "]");
+            break;
         case NODE_IDENTIFIER:
-            // Depuração: imprime o nome_id e endereço do buffer
-            fprintf(stderr, "[NODE_IDENTIFIER] nome_id='%s' endereco=%p\n", no->data.nome_id, (void *)no->data.nome_id);
-            fprintf(saida, "%s", no->data.nome_id);
-            fflush(saida);
+            fprintf(stderr, "[NODE_IDENTIFIER] nome_id='%s'\n", no->data.nome_id);
+            Simbolo *s = buscarSimbolo(no->data.nome_id);
+            if (s && s->tam_array > 0)
+            {
+                // tenta detectar padrão 'nome0', 'nome1', etc
+                char base[64];
+                int idx = -1;
+                if (sscanf(no->data.nome_id, "%[a-zA-Z_]%d", base, &idx) == 2)
+                {
+                    fprintf(saida, "%s[%d]", base, idx);
+                }
+                else
+                {
+                    fprintf(saida, "%s[0]", no->data.nome_id);
+                }
+            }
+            else
+            {
+                fprintf(saida, "%s", no->data.nome_id);
+            }
             break;
         case NODE_OPERATOR:
             // Detecta operadores compostos do tipo i = i + 2; e transforma em i += 2; em comandos também

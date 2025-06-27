@@ -45,7 +45,9 @@ typedef enum
     NODE_PARAM_LIST,    // Lista de parâmetros de função
     NODE_ARG_LIST,      // Lista de argumentos em chamadas de função
     NODE_FIELD_ASSIGN,  // Para atribuição a campo de struct (ex: p.x = 1)
-    NODE_FIELD_ACCESS   // Para acesso a campo de struct (ex: p.x)
+    NODE_FIELD_ACCESS,  // Para acesso a campo de struct (ex: p.x)
+    NODE_ARRAY_ACCESS,  // Para acesso a elementos de array (ex: arr[0])
+    NODE_ARRAY_LITERAL
 } NodeType;
 
 // Enumeração para os operadores
@@ -102,6 +104,7 @@ typedef struct NoAST
         {
             char *nome_declaracao;
             struct NoAST *inicializacao_expr;
+            struct NoAST *tamanho_array; // adiciona campo para tamanho de array
         } decl_info;
 
         char *func_name;
@@ -120,6 +123,7 @@ typedef struct NoAST
     struct NoAST *proximo;
     struct NoAST *parametros;
     struct NoAST *pai_controlador; // aponta para o comando de controle (for/while/if/switch) que é dono deste bloco
+    struct NoAST *tamanho_array;   // para armazenar tamanho de array (opcional)
 
 } NoAST;
 
@@ -156,6 +160,9 @@ NoAST *criarNoChamadaFuncao(char *nome_func, NoAST *args_list, Tipo tipo_retorno
 NoAST *criarNoAtribuicaoCampo(NoAST *struct_expr, char *campo, NoAST *valor);
 NoAST *criarNoAcessoCampo(NoAST *struct_expr, char *campo);
 NoAST *criarNoFuncao(char *nome, Tipo tipo_retorno, NoAST *params, NoAST *corpo);
+NoAST *criarNoAcessoArray(NoAST *array_expr, NoAST *index_expr);
+NoAST *criarNoDeclaracaoVarArrayComInicializacao(char *nome, Tipo tipo, NoAST *tamanho, NoAST *valores);
+NoAST *criarNoArrayLiteral(NoAST *valores);
 
 // Funções de manipulação da AST
 void imprimirAST(NoAST *no);

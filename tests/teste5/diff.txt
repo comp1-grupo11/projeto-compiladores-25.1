@@ -4,26 +4,30 @@
 ---
 >   let resultado: number = soma(10, 20);
 > 
-10,13c9,11
+10c9,11
 < resultado *= 2;
-< }
-< else {
-< resultado -= 5;
 ---
 >     resultado = resultado * 2;
 >   } else {
 >     resultado = resultado - 5;
-16,23c15
-< resultado += i;
+12,14c13
+< else {
+< resultado -= 5;
 < }
+---
+> 
+16c15
+< resultado += i;
+---
+>     resultado = resultado + i;
+18,24d16
 < resultado += i;
 < for (; i < 3; i = i + 1) {
 < resultado += i;
 < }
 < resultado += i;
 < resultado += i;
----
->     resultado = resultado + i;
+< }
 26c18,19
 < 
 ---

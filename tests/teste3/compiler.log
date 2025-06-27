@@ -1,25 +1,25 @@
 Tipo de nó AST não suportado: 19
-[NODE_IDENTIFIER] nome_id='i' endereco=0x5d841905d690
-[NODE_IDENTIFIER] nome_id='i' endereco=0x5d841905d870
-[NODE_IDENTIFIER] nome_id='i' endereco=0x5d841905d9e0
-[NODE_IDENTIFIER] nome_id='i' endereco=0x5d841905d9e0
-[NODE_IDENTIFIER] nome_id='f' endereco=0x5d841905dc30
-[NODE_IDENTIFIER] nome_id='i' endereco=0x5d841905de10
-[NODE_IDENTIFIER] nome_id='f' endereco=0x5d841905df80
-[NODE_IDENTIFIER] nome_id='j' endereco=0x5d841905e660
-[NODE_IDENTIFIER] nome_id='j' endereco=0x5d841905ea10
-[NODE_IDENTIFIER] nome_id='j' endereco=0x5d841905ea80
-[NODE_IDENTIFIER] nome_id='j' endereco=0x5d841905f310
-[NODE_IDENTIFIER] nome_id='j' endereco=0x5d841905f310
-[NODE_IDENTIFIER] nome_id='j' endereco=0x5d841905e660
-[NODE_IDENTIFIER] nome_id='j' endereco=0x5d841905ea10
-[NODE_IDENTIFIER] nome_id='j' endereco=0x5d841905ea80
-[NODE_IDENTIFIER] nome_id='j' endereco=0x5d841905f310
-[NODE_IDENTIFIER] nome_id='j' endereco=0x5d841905f310
-[NODE_IDENTIFIER] nome_id='j' endereco=0x5d841905f310
-[NODE_IDENTIFIER] nome_id='p1' endereco=0x5d841905ee80
-[NODE_IDENTIFIER] nome_id='p1' endereco=0x5d841905f010
-[NODE_IDENTIFIER] nome_id='i' endereco=0x5d841905f0c0
-[NODE_IDENTIFIER] nome_id='p1' endereco=0x5d841905ff20
-[NODE_IDENTIFIER] nome_id='p1' endereco=0x5d841905f010
-[NODE_IDENTIFIER] nome_id='i' endereco=0x5d841905f0c0
+[NODE_IDENTIFIER] nome_id='i'
+[NODE_IDENTIFIER] nome_id='i'
+[NODE_IDENTIFIER] nome_id='i'
+[NODE_IDENTIFIER] nome_id='i'
+[NODE_IDENTIFIER] nome_id='f'
+[NODE_IDENTIFIER] nome_id='i'
+[NODE_IDENTIFIER] nome_id='f'
+[NODE_IDENTIFIER] nome_id='j'
+[NODE_IDENTIFIER] nome_id='j'
+[NODE_IDENTIFIER] nome_id='j'
+[NODE_IDENTIFIER] nome_id='j'
+[NODE_IDENTIFIER] nome_id='j'
+[NODE_IDENTIFIER] nome_id='j'
+[NODE_IDENTIFIER] nome_id='j'
+[NODE_IDENTIFIER] nome_id='j'
+[NODE_IDENTIFIER] nome_id='j'
+[NODE_IDENTIFIER] nome_id='j'
+[NODE_IDENTIFIER] nome_id='j'
+[NODE_IDENTIFIER] nome_id='p1'
+[NODE_IDENTIFIER] nome_id='p1'
+[NODE_IDENTIFIER] nome_id='i'
+[NODE_IDENTIFIER] nome_id='p1'
+[NODE_IDENTIFIER] nome_id='p1'
+[NODE_IDENTIFIER] nome_id='i'
