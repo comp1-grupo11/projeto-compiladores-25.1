@@ -9,6 +9,8 @@ LDFLAGS = -L/opt/homebrew/opt/flex/lib
 TARGET = parser
 
 # Arquivos fonte
+
+# Removido copiar_no_ast.c do build
 SRC = parser.tab.c lex.yy.c ast.c tabela.c gerador.c gerador_ts.c
 OBJ = $(SRC:.c=.o)
 
@@ -49,11 +51,11 @@ test: $(TARGET)
 	@echo "\n🔍 Iniciando testes..."
 	@for test in $(TEST_FILES); do \
 		echo "\n🔬 Testando $$test:"; \
-        if ./$(TARGET) $$test; then \
-            echo "✅ Teste concluído com sucesso: $$test"; \
-        else \
-            echo "❌ Falha no teste $$test"; \
-        fi \
+		if ./$(TARGET) $$test; then \
+			echo "✅ Teste concluído com sucesso: $$test"; \
+		else \
+			echo "❌ Falha no teste $$test"; \
+		fi \
 	done
 	@echo "\n🏁 Todos os testes concluídos\n"
 

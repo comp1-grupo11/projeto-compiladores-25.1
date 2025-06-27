@@ -123,6 +123,9 @@ typedef struct NoAST
 
 } NoAST;
 
+// Função utilitária para copiar um nó isolado da AST (sem filhos)
+NoAST *copiarNoAST(const NoAST *orig);
+
 // Funções de criação de nós
 NoAST *criarNoOp(OperatorType op, NoAST *esq, NoAST *dir);
 NoAST *criarNoUnario(OperatorType op, NoAST *operando);

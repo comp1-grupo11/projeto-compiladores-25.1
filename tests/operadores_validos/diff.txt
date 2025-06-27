@@ -1,7 +1,3 @@
-6c6
-< let mod: number = ab;
----
->     let mod: number = a % b;
 11,19c11,19
 < let eq: number = a == b;
 < let ne: number = a != b;

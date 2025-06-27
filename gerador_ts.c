@@ -73,12 +73,27 @@ void gerarExpressaoNoFor(NoAST *no, FILE *saida, VarDecl **decls);
 
 void gerarArgumentos(NoAST *arg, FILE *saida)
 {
+    int idx = 0;
     while (arg)
     {
+        // Depuração: imprime o nome_id se for identificador
+        if (arg->tipo_no == NODE_IDENTIFIER)
+        {
+            fprintf(stderr, "[DEBUG] Arg %d: nome_id='%s'\n", idx, arg->data.nome_id);
+        }
+        else if (arg->tipo_no == NODE_LITERAL && arg->tipo_dado == TIPO_STRING && arg->data.literal.val_string)
+        {
+            fprintf(stderr, "[DEBUG] Arg %d: string='%s'\n", idx, arg->data.literal.val_string);
+        }
+        else
+        {
+            fprintf(stderr, "[DEBUG] Arg %d: tipo_no=%d\n", idx, arg->tipo_no);
+        }
         gerarTypeScript(arg, saida, NULL, 0, 1);
         arg = arg->proximo;
         if (arg)
             fprintf(saida, ", ");
+        idx++;
     }
 }
 
@@ -252,8 +267,9 @@ void gerarTypeScript(NoAST *no, FILE *saida, VarDecl **decls, int ident, int isE
                     const char *format = fmt->data.literal.val_string;
                     fprintf(saida, "console.log(`");
                     const char *p = format;
-                    //int arg_idx = 0;
+                    // Percorre a lista encadeada de argumentos (proximo)
                     NoAST *arg = fmt->proximo;
+                    int idx_dbg = 0;
                     while (*p)
                     {
                         if (*p == '%' && (*(p + 1) == 'd' || *(p + 1) == 'f' || *(p + 1) == 'c' || *(p + 1) == 's'))
@@ -261,8 +277,40 @@ void gerarTypeScript(NoAST *no, FILE *saida, VarDecl **decls, int ident, int isE
                             fprintf(saida, "${");
                             if (arg)
                             {
-                                gerarTypeScript(arg, saida, decls, ident, 1);
+                                // Depuração: imprime o tipo e nome_id se for identificador
+                                if (arg->tipo_no == NODE_IDENTIFIER)
+                                {
+                                    fprintf(stderr, "[PRINTF-DEBUG] Arg %d: nome_id='%s' endereco=%p\n", idx_dbg, arg->data.nome_id, (void *)arg->data.nome_id);
+                                }
+                                else if (arg->tipo_no == NODE_LITERAL && arg->tipo_dado == TIPO_STRING && arg->data.literal.val_string)
+                                {
+                                    printf("[PRINTF-DEBUG] Arg %d: string='%s'\n", idx_dbg, arg->data.literal.val_string);
+                                }
+                                else
+                                {
+                                    printf("[PRINTF-DEBUG] Arg %d: tipo_no=%d\n", idx_dbg, arg->tipo_no);
+                                }
+                                // Garante que só o nó atual seja impresso (proximo = NULL temporário)
+                                char tempbuf[128] = {0};
+                                FILE *tempf = fmemopen(tempbuf, sizeof(tempbuf), "w");
+                                if (tempf)
+                                {
+                                    NoAST *save_prox = arg->proximo;
+                                    arg->proximo = NULL;
+                                    gerarTypeScript(arg, tempf, decls, ident, 1);
+                                    arg->proximo = save_prox;
+                                    fclose(tempf);
+                                    fprintf(saida, "%s", tempbuf);
+                                }
+                                else
+                                {
+                                    NoAST *save_prox = arg->proximo;
+                                    arg->proximo = NULL;
+                                    gerarTypeScript(arg, saida, decls, ident, 1);
+                                    arg->proximo = save_prox;
+                                }
                                 arg = arg->proximo;
+                                idx_dbg++;
                             }
                             fprintf(saida, "}");
                             p += 2;
@@ -474,7 +522,10 @@ void gerarTypeScript(NoAST *no, FILE *saida, VarDecl **decls, int ident, int isE
                 }
             break;
         case NODE_IDENTIFIER:
+            // Depuração: imprime o nome_id e endereço do buffer
+            fprintf(stderr, "[NODE_IDENTIFIER] nome_id='%s' endereco=%p\n", no->data.nome_id, (void *)no->data.nome_id);
             fprintf(saida, "%s", no->data.nome_id);
+            fflush(saida);
             break;
         case NODE_OPERATOR:
             // Detecta operadores compostos do tipo i = i + 2; e transforma em i += 2; em comandos também

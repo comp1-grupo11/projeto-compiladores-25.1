@@ -1,3 +1,6 @@
+// Função utilitária para copiar um nó isolado da AST (sem filhos)
+// (deve ser definida após os typedefs e enums)
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -1114,4 +1117,62 @@ NoAST *removerNoDaLista(NoAST *head, NoAST *alvo)
         atual = atual->proximo;
     }
     return head;
+}
+
+// Função utilitária para copiar um nó isolado da AST (sem filhos)
+NoAST *copiarNoAST(const NoAST *orig)
+{
+    if (!orig)
+        return NULL;
+    NoAST *novo = (NoAST *)malloc(sizeof(NoAST));
+    memset(novo, 0, sizeof(NoAST));
+    novo->tipo_no = orig->tipo_no;
+    novo->tipo_dado = orig->tipo_dado;
+    switch (orig->tipo_no)
+    {
+    case NODE_IDENTIFIER:
+        strncpy(novo->data.nome_id, orig->data.nome_id, sizeof(novo->data.nome_id));
+        novo->data.nome_id[sizeof(novo->data.nome_id) - 1] = '\0';
+        break;
+    case NODE_LITERAL:
+        if (orig->tipo_dado == TIPO_STRING && orig->data.literal.val_string)
+        {
+            novo->data.literal.val_string = strdup(orig->data.literal.val_string);
+        }
+        else if (orig->tipo_dado == TIPO_INT)
+        {
+            novo->data.literal.val_int = orig->data.literal.val_int;
+        }
+        else if (orig->tipo_dado == TIPO_FLOAT)
+        {
+            novo->data.literal.val_float = orig->data.literal.val_float;
+        }
+        else if (orig->tipo_dado == TIPO_DOUBLE)
+        {
+            novo->data.literal.val_double = orig->data.literal.val_double;
+        }
+        else if (orig->tipo_dado == TIPO_CHAR)
+        {
+            novo->data.literal.val_char = orig->data.literal.val_char;
+        }
+        break;
+    case NODE_OPERATOR:
+        novo->data.op_type = orig->data.op_type;
+        break;
+    case NODE_FUNCTION_CALL:
+        if (orig->data.func_name)
+            novo->data.func_name = strdup(orig->data.func_name);
+        break;
+    default:
+        // Para outros tipos, copie campos relevantes se necessário
+        break;
+    }
+    // Todos os ponteiros para filhos ficam NULL (nó isolado)
+    novo->esquerda = NULL;
+    novo->direita = NULL;
+    novo->centro = NULL;
+    novo->proximo = NULL;
+    novo->parametros = NULL;
+    novo->pai_controlador = NULL;
+    return novo;
 }

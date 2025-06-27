@@ -477,18 +477,24 @@ args:
 ;
 
 arg_list:
-    expr { $$ = $1; }
+    expr {
+        // Sempre copia o nó para garantir isolamento
+        NoAST *copia = copiarNoAST($1);
+        copia->proximo = NULL;
+        $$ = copia;
+    }
     | arg_list COMMA expr {
-        NoAST *head = $1;
-        if (head == NULL) {
-            $$ = $3;
+        NoAST *copia = copiarNoAST($3);
+        copia->proximo = NULL;
+        if ($1 == NULL) {
+            $$ = copia;
         } else {
-            NoAST *current = head;
-            while (current->proximo != NULL) {
-                current = current->proximo;
+            NoAST *last = $1;
+            while (last->proximo != NULL) {
+                last = last->proximo;
             }
-            current->proximo = $3;
-            $$ = head;
+            last->proximo = copia;
+            $$ = $1;
         }
     }
 ;
@@ -645,6 +651,7 @@ expr:
     | expr OP_OR expr { $$ = criarNoOp(OP_OR_TYPE, $1, $3); }
     | OP_NOT expr { $$ = criarNoUnario(OP_NOT_TYPE, $2); }
     | LPAREN expr RPAREN { $$ = $2; }
+    /* Removido operador de vírgula para evitar AST errada em listas de argumentos */
 ;
 
 %%

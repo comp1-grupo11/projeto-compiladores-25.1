@@ -88,7 +88,7 @@
 79,83d44
 < let p2: Point = { x: p1.y, y: 0 };
 < p1.y = i * 2;
-< console.log(`Ponto final: (${p2.xp2.y}, ${p2.y})\n`);
+< console.log(`Ponto final: (${}, ${})\n`);
 < return 0;
 < }
 84a46,47
