@@ -345,6 +345,7 @@ declarator_list:
     }
 ;
 
+
 declarator:
     IDENTIFIER {
         Simbolo *s = buscarSimboloNoEscopoAtual($1);
