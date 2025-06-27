@@ -1,46 +1,5 @@
-Erro sintático linha 37: Atribuição só é permitida para variáveis, campos ou elementos de array.
-Erro sintático linha 38: Atribuição só é permitida para variáveis, campos ou elementos de array.
-Erro sintático linha 39: Atribuição só é permitida para variáveis, campos ou elementos de array.
-Erro sintático linha 40: Atribuição só é permitida para variáveis, campos ou elementos de array.
+Erro semântico linha 37: Atribuição só é permitida para variáveis, campos ou elementos de array.
+Erro semântico linha 38: Atribuição só é permitida para variáveis, campos ou elementos de array.
+Erro semântico linha 39: Atribuição só é permitida para variáveis, campos ou elementos de array.
+Erro semântico linha 40: Atribuição só é permitida para variáveis, campos ou elementos de array.
 Tipo de nó AST não suportado: 19
-[NODE_IDENTIFIER] nome_id='a'
-[NODE_IDENTIFIER] nome_id='b'
-[NODE_IDENTIFIER] nome_id='a'
-[NODE_IDENTIFIER] nome_id='b'
-[NODE_IDENTIFIER] nome_id='a'
-[NODE_IDENTIFIER] nome_id='b'
-[NODE_IDENTIFIER] nome_id='a'
-[NODE_IDENTIFIER] nome_id='b'
-[NODE_IDENTIFIER] nome_id='a'
-[NODE_IDENTIFIER] nome_id='b'
-[NODE_IDENTIFIER] nome_id='soma'
-[NODE_IDENTIFIER] nome_id='sub'
-[NODE_IDENTIFIER] nome_id='mul'
-[NODE_IDENTIFIER] nome_id='div'
-[NODE_IDENTIFIER] nome_id='a'
-[NODE_IDENTIFIER] nome_id='b'
-[NODE_IDENTIFIER] nome_id='a'
-[NODE_IDENTIFIER] nome_id='b'
-[NODE_IDENTIFIER] nome_id='a'
-[NODE_IDENTIFIER] nome_id='b'
-[NODE_IDENTIFIER] nome_id='a'
-[NODE_IDENTIFIER] nome_id='b'
-[NODE_IDENTIFIER] nome_id='a'
-[NODE_IDENTIFIER] nome_id='b'
-[NODE_IDENTIFIER] nome_id='a'
-[NODE_IDENTIFIER] nome_id='b'
-[NODE_IDENTIFIER] nome_id='a'
-[NODE_IDENTIFIER] nome_id='b'
-[NODE_IDENTIFIER] nome_id='a'
-[NODE_IDENTIFIER] nome_id='b'
-[NODE_IDENTIFIER] nome_id='a'
-[NODE_IDENTIFIER] nome_id='a'
-[NODE_IDENTIFIER] nome_id='b'
-[NODE_IDENTIFIER] nome_id='b'
-[NODE_IDENTIFIER] nome_id='p'
-[NODE_IDENTIFIER] nome_id='soma'
-[NODE_IDENTIFIER] nome_id='p'
-[NODE_IDENTIFIER] nome_id='sub'
-[NODE_IDENTIFIER] nome_id='p'
-[NODE_IDENTIFIER] nome_id='sub'
-[NODE_IDENTIFIER] nome_id='v'

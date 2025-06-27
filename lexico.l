@@ -122,9 +122,8 @@ PP_DIR      #(include|define|ifdef|endif|ifndef|elif|else)
     \\\\        { strcat(temp_str, "\\"); }
     [^\\\"]+    { strncat(temp_str, yytext, sizeof(temp_str)-strlen(temp_str)-1); }
     <<EOF>>     { 
-        yyerror("String não terminada"); 
-        BEGIN(INITIAL); 
-        return 0; 
+        yyerror("String não terminada");
+        exit(1);
     }
 }
 
@@ -141,9 +140,8 @@ PP_DIR      #(include|define|ifdef|endif|ifndef|elif|else)
     \\\\        { strcpy(temp_str, "\\\\"); }
     .           { strncpy(temp_str, yytext, sizeof(temp_str)); }
     <<EOF>>     { 
-        yyerror("Caractere não terminado"); 
-        BEGIN(INITIAL); 
-        return 0; 
+        yyerror("Caractere não terminado");
+        exit(1);
     }
 }
 
@@ -206,6 +204,8 @@ PP_DIR      #(include|define|ifdef|endif|ifndef|elif|else)
 .               { 
     fprintf(stderr, "Erro léxico linha %d: Caractere inválido '%s'\n", 
             current_line, yytext); 
+    extern int temErroSemantico;
+    temErroSemantico = 1;
     return 0; 
 }
 

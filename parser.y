@@ -15,6 +15,7 @@ extern char* yytext;
 extern int yylineno;
 
 void yyerror(const char *s);
+void semantic_error(const char *s);
 void criarEscopoLocal(void);
 void destruirEscopoLocal(void);
 void gerarTypeScript(NoAST *no, FILE *saida, VarDecl **decls, int ident);
@@ -89,8 +90,10 @@ NoAST *raiz_ast = NULL;
 
 %%
 
+
 program:
     toplevel_list { raiz_ast = $1; }
+  | error { YYABORT; }
 ;
 
 toplevel_list:
@@ -350,7 +353,7 @@ declarator:
     IDENTIFIER {
         Simbolo *s = buscarSimboloNoEscopoAtual($1);
         if (s) {
-            yyerror("Redeclaração de variável.");
+            semantic_error("Redeclaração de variável.");
             $$ = criarNoErro();
         } else {
             int tamanho = 0;
@@ -366,7 +369,7 @@ declarator:
     | IDENTIFIER OP_ASSIGN expr {
         Simbolo *s = buscarSimboloNoEscopoAtual($1);
         if (s) {
-            yyerror("Redeclaração de variável.");
+            semantic_error("Redeclaração de variável.");
             $$ = criarNoErro();
         } else {
             int tamanho = 0;
@@ -382,7 +385,7 @@ declarator:
     | IDENTIFIER LBRACKET expr RBRACKET {
         Simbolo *s = buscarSimboloNoEscopoAtual($1);
         if (s) {
-            yyerror("Redeclaração de variável.");
+            semantic_error("Redeclaração de variável.");
             $$ = criarNoErro();
         } else {
             int tamanho = 0;
@@ -405,7 +408,7 @@ declarator:
     | IDENTIFIER OP_ASSIGN LBRACE field_assign_list RBRACE {
         Simbolo *s = buscarSimboloNoEscopoAtual($1);
         if (s) {
-            yyerror("Redeclaração de variável.");
+            semantic_error("Redeclaração de variável.");
             $$ = criarNoErro();
         } else {
             int tamanho = 0;
@@ -421,7 +424,7 @@ declarator:
     | IDENTIFIER LBRACKET expr RBRACKET OP_ASSIGN LBRACE expr_list RBRACE {
         Simbolo *s = buscarSimboloNoEscopoAtual($1);
         if (s) {
-            yyerror("Redeclaração de array.");
+            semantic_error("Redeclaração de array.");
             $$ = criarNoErro();
         } else {
             int tamanho = 0;
@@ -449,7 +452,7 @@ declarator:
     | IDENTIFIER LBRACKET RBRACKET OP_ASSIGN LBRACE expr_list RBRACE {
         Simbolo *s = buscarSimboloNoEscopoAtual($1);
         if (s) {
-            yyerror("Redeclaração de array.");
+            semantic_error("Redeclaração de array.");
             $$ = criarNoErro();
         } else {
             int tamanho = 0;
@@ -464,7 +467,7 @@ declarator:
     | IDENTIFIER LBRACKET RBRACKET OP_ASSIGN STRING_LITERAL {
         Simbolo *s = buscarSimboloNoEscopoAtual($1);
         if (s) {
-            yyerror("Redeclaração de array.");
+            semantic_error("Redeclaração de array.");
             $$ = criarNoErro();
         } else {
             int tamanho = 1; // char
@@ -528,7 +531,7 @@ expr:
     | IDENTIFIER {
         Simbolo *s = buscarSimbolo($1);
         if (!s) {
-            yyerror("Identificador não declarado.");
+            semantic_error("Identificador não declarado.");
             $$ = criarNoErro();
         } else {
             $$ = criarNoId($1, s->tipo);
@@ -538,7 +541,7 @@ expr:
     | IDENTIFIER LPAREN args RPAREN {
         Simbolo *s = buscarSimbolo($1);
         if (!s || s->categoria != FUNCAO) {
-            yyerror("Chamada de função para identificador não declarado ou não é função.");
+            semantic_error("Chamada de função para identificador não declarado ou não é função.");
             $$ = criarNoErro();
         } else {
             $$ = criarNoChamadaFuncao($1, $3, s->tipo);
@@ -546,12 +549,12 @@ expr:
     }
     | expr OP_ASSIGN expr {
         if ($1 == NULL || $1->tipo_no == NODE_ERROR) {
-            yyerror("Atribuição para expressão inválida.");
+            semantic_error("Atribuição para expressão inválida.");
             $$ = criarNoErro();
         } else if ($1->tipo_no != NODE_IDENTIFIER &&
                    $1->tipo_no != NODE_FIELD_ACCESS &&
                    !($1->tipo_no == NODE_OPERATOR && $1->data.op_type == OP_INDEX_TYPE)) {
-            yyerror("Atribuição só é permitida para variáveis, campos ou elementos de array.");
+            semantic_error("Atribuição só é permitida para variáveis, campos ou elementos de array.");
             $$ = criarNoErro();
         } else if ($3 == NULL || $3->tipo_dado == TIPO_ERRO || !tiposCompativeis($1->tipo_dado, $3->tipo_dado)) {
             fprintf(stderr,
@@ -573,27 +576,27 @@ expr:
     | expr LBRACKET expr RBRACKET { $$ = criarNoAcessoArray($1, $3); }
     | IDENTIFIER OP_INC %prec POSTFIX_LEVEL {
         Simbolo *s = buscarSimbolo($1);
-        if (!s) { yyerror("Identificador não declarado para incremento."); $$ = criarNoErro(); }
+        if (!s) { semantic_error("Identificador não declarado para incremento."); $$ = criarNoErro(); }
         else { $$ = criarNoUnario(OP_INC_TYPE, criarNoId($1, s->tipo)); }
     }
     | IDENTIFIER OP_DEC %prec POSTFIX_LEVEL {
         Simbolo *s = buscarSimbolo($1);
-        if (!s) { yyerror("Identificador não declarado para decremento."); $$ = criarNoErro(); }
+        if (!s) { semantic_error("Identificador não declarado para decremento."); $$ = criarNoErro(); }
         else { $$ = criarNoUnario(OP_DEC_TYPE, criarNoId($1, s->tipo)); }
     }
     | OP_INC IDENTIFIER {
         Simbolo *s = buscarSimbolo($2);
-        if (!s) { yyerror("Identificador não declarado para incremento."); $$ = criarNoErro(); }
+        if (!s) { semantic_error("Identificador não declarado para incremento."); $$ = criarNoErro(); }
         else { $$ = criarNoUnario(OP_INC_TYPE, criarNoId($2, s->tipo)); }
     }
     | OP_DEC IDENTIFIER {
         Simbolo *s = buscarSimbolo($2);
-        if (!s) { yyerror("Identificador não declarado para decremento."); $$ = criarNoErro(); }
+        if (!s) { semantic_error("Identificador não declarado para decremento."); $$ = criarNoErro(); }
         else { $$ = criarNoUnario(OP_DEC_TYPE, criarNoId($2, s->tipo)); }
     }
     | IDENTIFIER OP_ADD_ASSIGN expr {
         Simbolo *s = buscarSimbolo($1);
-        if (!s) { yyerror("Identificador não declarado para atribuição composta."); $$ = criarNoErro(); }
+        if (!s) { semantic_error("Identificador não declarado para atribuição composta."); $$ = criarNoErro(); }
         else if ($3 == NULL || $3->tipo_dado == TIPO_ERRO || !tiposCompativeis(s->tipo, $3->tipo_dado)) {
             fprintf(stderr, "Erro de tipo: Atribuição composta (+=) de tipo incompatível para '%s' na linha %d.\n", $1, yylineno);
             $$ = criarNoErro();
@@ -605,7 +608,7 @@ expr:
     }
     | IDENTIFIER OP_SUB_ASSIGN expr {
         Simbolo *s = buscarSimbolo($1);
-        if (!s) { yyerror("Identificador não declarado para atribuição composta."); $$ = criarNoErro(); }
+        if (!s) { semantic_error("Identificador não declarado para atribuição composta."); $$ = criarNoErro(); }
         else if ($3 == NULL || $3->tipo_dado == TIPO_ERRO || !tiposCompativeis(s->tipo, $3->tipo_dado)) {
             fprintf(stderr, "Erro de tipo: Atribuição composta (-=) de tipo incompatível para '%s' na linha %d.\n", $1, yylineno);
             $$ = criarNoErro();
@@ -617,7 +620,7 @@ expr:
     }
     | IDENTIFIER OP_MUL_ASSIGN expr {
         Simbolo *s = buscarSimbolo($1);
-        if (!s) { yyerror("Identificador não declarado para atribuição composta."); $$ = criarNoErro(); }
+        if (!s) { semantic_error("Identificador não declarado para atribuição composta."); $$ = criarNoErro(); }
         else if ($3 == NULL || $3->tipo_dado == TIPO_ERRO || !tiposCompativeis(s->tipo, $3->tipo_dado)) {
             fprintf(stderr, "Erro de tipo: Atribuição composta (*=) de tipo incompatível para '%s' na linha %d.\n", $1, yylineno);
             $$ = criarNoErro();
@@ -629,7 +632,7 @@ expr:
     }
     | IDENTIFIER OP_DIV_ASSIGN expr {
         Simbolo *s = buscarSimbolo($1);
-        if (!s) { yyerror("Identificador não declarado para atribuição composta."); $$ = criarNoErro(); }
+        if (!s) { semantic_error("Identificador não declarado para atribuição composta."); $$ = criarNoErro(); }
         else if ($3 == NULL || $3->tipo_dado == TIPO_ERRO || !tiposCompativeis(s->tipo, $3->tipo_dado)) {
             fprintf(stderr, "Erro de tipo: Atribuição composta (/=) de tipo incompatível para '%s' na linha %d.\n", $1, yylineno);
             $$ = criarNoErro();
@@ -659,8 +662,14 @@ expr:
 
 %%
 
+
 void yyerror(const char *s) {
     fprintf(stderr, "Erro sintático linha %d: %s\n", yylineno, s);
+}
+
+void semantic_error(const char *s) {
+    fprintf(stderr, "Erro semântico linha %d: %s\n", yylineno, s);
+    temErroSemantico = 1;
 }
 
 void inicializarTabelaSimbolosGlobais() {
@@ -683,35 +692,34 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    yyparse();
 
+    int parseResult = yyparse();
     extern int temErroSemantico;
-    if (temErroSemantico) {
-        fprintf(stderr, "Código TypeScript não gerado devido a erro(s) semântico(s).\n");
-        return 1;
+    // Só gera arquivos de saída se não houve erro sintático (parseResult == 0)
+    if (parseResult == 0) {
+        const char *outputPath = (argc > 2) ? argv[2] : "output.ts";
+
+        FILE *saida_ts = fopen(outputPath, "w");
+        if (!saida_ts) {
+            perror("Erro ao criar arquivo de saída");
+            return 1;
+        }
+
+        FILE *saida_ir = fopen("intercode.ir", "w");
+        if (!saida_ir) {
+            perror("Erro ao criar arquivo de IR");
+            fclose(saida_ts);
+            return 1;
+        }
+
+        gerarIR(raiz_ast, saida_ir);
+        fclose(saida_ir);
+
+        VarDecl *decls = NULL;
+        gerarTypeScript(raiz_ast, saida_ts, &decls, 0);
+        fclose(saida_ts);
+        return 0;
     }
-
-    const char *outputPath = (argc > 2) ? argv[2] : "output.ts";
-
-    FILE *saida_ts = fopen(outputPath, "w");
-    if (!saida_ts) {
-        perror("Erro ao criar arquivo de saída");
-        return 1;
-    }
-
-    // Gerar código intermediário (IR)
-    FILE *saida_ir = fopen("intercode.ir", "w");
-    if (!saida_ir) {
-        perror("Erro ao criar arquivo de IR");
-        return 1;
-    }
-    gerarIR(raiz_ast, saida_ir);
-    fclose(saida_ir);
-    // imprimirASTComIndent(raiz_ast, 0);
-
-    VarDecl *decls = NULL;
-    gerarTypeScript(raiz_ast, saida_ts, &decls, 0);
-    fclose(saida_ts);
-
-    return 0;
+    // Se houve erro sintático ou léxico, retorna 1
+    return 1;
 }

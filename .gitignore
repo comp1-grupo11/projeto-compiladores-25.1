@@ -16,6 +16,7 @@ lex.yy.*
 diff.txt
 *.log
 parser
+typec
 
 # Outros
 *.swp

@@ -6,7 +6,7 @@ BISON = bison
 LDFLAGS = -L/opt/homebrew/opt/flex/lib
 
 # Nome do executável
-TARGET = parser
+TARGET = typec
 
 # Arquivos fonte
 
@@ -44,8 +44,9 @@ lex.yy.c: lexico.l parser.tab.h
 
 clear:
 	@echo "\n🧹 Limpando arquivos gerados..."
-	rm -f $(TARGET) *.o *.output
-	rm -f parser.tab.* lex.yy.c
+	rm -f $(TARGET) *.o *.output 
+	rm -f parser.tab.* lex.yy.c output.ts intercode.ir
+	find $(TEST_DIR) -type f \( -name 'diff.txt' -o -name 'compiler.log' -o -name 'output.ts' \) -exec rm -f {} +
 
 test: $(TARGET)
 	@echo "\n🔍 Iniciando testes..."

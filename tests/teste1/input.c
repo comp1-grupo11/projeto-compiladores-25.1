@@ -13,7 +13,7 @@ struct Pessoa
 int calcular_idade(int ano_nascimento)
 {
     const int ano_atual = 2024;
-    return "ano_atual - ano_nascimento";
+    return ano_atual - ano_nascimento;
 }
 
 int i;

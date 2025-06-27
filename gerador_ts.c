@@ -76,19 +76,7 @@ void gerarArgumentos(NoAST *arg, FILE *saida)
     int idx = 0;
     while (arg)
     {
-        // Depuração: imprime o nome_id se for identificador
-        if (arg->tipo_no == NODE_IDENTIFIER)
-        {
-            fprintf(stderr, "[DEBUG] Arg %d: nome_id='%s'\n", idx, arg->data.nome_id);
-        }
-        else if (arg->tipo_no == NODE_LITERAL && arg->tipo_dado == TIPO_STRING && arg->data.literal.val_string)
-        {
-            fprintf(stderr, "[DEBUG] Arg %d: string='%s'\n", idx, arg->data.literal.val_string);
-        }
-        else
-        {
-            fprintf(stderr, "[DEBUG] Arg %d: tipo_no=%d\n", idx, arg->tipo_no);
-        }
+        // Removido print de debug
         gerarTypeScript(arg, saida, NULL, 0, 1);
         arg = arg->proximo;
         if (arg)
@@ -198,7 +186,6 @@ void gerarTypeScript(NoAST *no, FILE *saida, VarDecl **decls, int ident, int isE
                 {
                     // Detecta atribuição composta do tipo i = i + 2; e transforma em i += 2;
                     NoAST *init = no->data.decl_info.inicializacao_expr;
-                    Simbolo *s = buscarSimbolo(no->data.decl_info.nome_declaracao);
                     if (init && init->tipo_no == NODE_OPERATOR &&
                         ((init->data.op_type == OP_ADD_TYPE || init->data.op_type == OP_SUB_TYPE || init->data.op_type == OP_MUL_TYPE || init->data.op_type == OP_DIV_TYPE) &&
                          init->esquerda && init->esquerda->tipo_no == NODE_IDENTIFIER &&
@@ -230,7 +217,6 @@ void gerarTypeScript(NoAST *no, FILE *saida, VarDecl **decls, int ident, int isE
                     {
                         // Ajustado: bloco único para declaração de arrays e outros tipos
                         NoAST *init = no->data.decl_info.inicializacao_expr;
-                        Simbolo *s = buscarSimbolo(no->data.decl_info.nome_declaracao);
                         if (init && init->tipo_no == NODE_ARRAY_LITERAL)
                         {
                             fprintf(saida, "let %s: number[] = [", no->data.decl_info.nome_declaracao);
@@ -312,15 +298,15 @@ void gerarTypeScript(NoAST *no, FILE *saida, VarDecl **decls, int ident, int isE
                                 // Depuração: imprime o tipo e nome_id se for identificador
                                 if (arg->tipo_no == NODE_IDENTIFIER)
                                 {
-                                    fprintf(stderr, "[PRINTF-DEBUG] Arg %d: nome_id='%s' endereco=%p\n", idx_dbg, arg->data.nome_id, (void *)arg->data.nome_id);
+                                    // Removido print de debug
                                 }
                                 else if (arg->tipo_no == NODE_LITERAL && arg->tipo_dado == TIPO_STRING && arg->data.literal.val_string)
                                 {
-                                    printf("[PRINTF-DEBUG] Arg %d: string='%s'\n", idx_dbg, arg->data.literal.val_string);
+                                    // Removido print de debug
                                 }
                                 else
                                 {
-                                    printf("[PRINTF-DEBUG] Arg %d: tipo_no=%d\n", idx_dbg, arg->tipo_no);
+                                    // Removido print de debug
                                 }
                                 // Garante que só o nó atual seja impresso (proximo = NULL temporário)
                                 char tempbuf[128] = {0};
@@ -560,7 +546,7 @@ void gerarTypeScript(NoAST *no, FILE *saida, VarDecl **decls, int ident, int isE
             fprintf(saida, "]");
             break;
         case NODE_IDENTIFIER:
-            fprintf(stderr, "[NODE_IDENTIFIER] nome_id='%s'\n", no->data.nome_id);
+            // Removido print de debug
             Simbolo *s = buscarSimbolo(no->data.nome_id);
             if (s && s->tam_array > 0)
             {

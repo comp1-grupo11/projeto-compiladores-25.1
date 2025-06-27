@@ -1,4 +1,10 @@
-11,19c11,19
+0a1,5
+> type Ponto = {
+>   x: number;
+>   y: number;
+> };
+> 
+11,19c17,28
 < let eq: number = a == b;
 < let ne: number = a != b;
 < let lt: number = a < b;
@@ -9,18 +15,24 @@
 < let ou: number = a || b;
 < let nao: number = !a;
 ---
->     let eq: boolean = a == b;
->     let ne: boolean = a != b;
->     let lt: boolean = a < b;
->     let le: boolean = a <= b;
->     let gt: boolean = a > b;
->     let ge: boolean = a >= b;
->     let e: boolean = a && b;
->     let ou: boolean = a || b;
->     let nao: boolean = !a;
-23d22
+> 
+>   let eq: boolean = a == b;
+>   let ne: boolean = a != b;
+>   let lt: boolean = a < b;
+>   let le: boolean = a <= b;
+>   let gt: boolean = a > b;
+>   let ge: boolean = a >= b;
+> 
+>   let e: boolean = a && b;
+>   let ou: boolean = a || b;
+>   let nao: boolean = !a;
+> 
+22,39d30
+< let p: Ponto = { x: 0, y: 0 };
 < b--;
-27,38c26,30
+< p.x = soma;
+< p.y = sub;
+< let v: number = 4;
 < p.y = sub;
 < // [Tipo de nó não implementado: 3]
 < // [Tipo de nó não implementado: 3]
@@ -33,9 +45,15 @@
 < // [Tipo de nó não implementado: 3]
 < // [Tipo de nó não implementado: 3]
 < // [Tipo de nó não implementado: 3]
----
->     v0p.x;
->     v1p.y;
->     v2v0 + v1;
->     v3a != b++ || !v--2 < b;
->     return v2;
+< }
+40a32,38
+>   let p: Ponto = { x: soma, y: sub };
+> 
+>   let v: number[] = [0, 0, 0, 0];
+>   v[0] = p.x;
+>   v[1] = p.y;
+>   v[2] = v[0] + v[1];
+>   v[3] = (a != ++b || !(--v[2] < b)) as unknown as number;
+41a40,41
+>   return v[2];
+> }
