@@ -51,12 +51,7 @@ Este projeto implementa um compilador de C para TypeScript com escopo reduzido, 
 
 ### 3.3 Expressões
 
-* **Literais**:
-
-  * Inteiros: decimal, hexadecimal (`0xFF`), octal (`0755`)
-  * Reais: `3.14`, `2.5e-3`
-  * Caracteres: `'x'`
-  * Strings: `"hello"`
+* **Literais**
 * **Identificadores** e **chamadas de função**
 * **Operadores unários**: `!`, `++`/`--` (prefixo e pós-fixado)
 * **Operadores binários**:
@@ -87,9 +82,9 @@ O compilador espera a sintaxe convencional dessas construções, seguindo o esti
 
 * **Controle de laço**: os comandos `break;` e `continue;` devem ser usados dentro de `for`, `while` ou `switch`.
 
-* **Comando switch**: suporta múltiplos case com valores constantes inteiros, e um default opcional. Cada case deve terminar com `break;`, ou o compilador assumirá continuidade.
+* **Comando switch**: suporta múltiplos `case` com valores constantes inteiros, e um `default` opcional. Cada case deve terminar com `break;`, ou o compilador assumirá continuidade.
 
-* **Retorno**: `return expr`; deve ser usado em funções que retornam valores, e `return;` em funções `void`.
+* **Retorno**: `return expr;` deve ser usado em funções que retornam valores, e `return;` em funções `void`.
 
 
 ## 4. Sintaxes de C **não suportadas**
