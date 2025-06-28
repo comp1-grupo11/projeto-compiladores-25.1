@@ -1,7 +1,7 @@
 #include <stdio.h>
 
 #define MAX_SIZE 100
-#define string char*
+#define string char *
 
 struct Pessoa
 {
@@ -13,7 +13,7 @@ struct Pessoa
 int calcular_idade(int ano_nascimento)
 {
     const int ano_atual = 2024;
-    return "ano_atual - ano_nascimento";
+    return ano_atual - ano_nascimento;
 }
 
 int i;
@@ -25,7 +25,7 @@ int main()
     char letra = 'A';
     char mensagem[] = "Teste de compilacao";
     double pi = 3.14159265359;
-    //int i = 1;
+    // int i = 1;
 
     struct Pessoa usuario = {
         .id = "123",

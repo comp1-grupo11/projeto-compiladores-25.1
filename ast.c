@@ -1,32 +1,297 @@
+// Função utilitária para copiar um nó isolado da AST (sem filhos)
+// (deve ser definida após os typedefs e enums)
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include "ast.h"
+#include <stddef.h>
+
+// Protótipo da função auxiliar para alocar um nó base
+static NoAST *alocarNoAST(NodeType tipo_no);
 
 extern int yylineno; // Para obter o número da linha atual
 
-const char *nomeTipo(Tipo tipo)
+// Função auxiliar para imprimir indentação
+void imprimirIndentacao(int indent)
 {
-    switch (tipo)
+    for (int i = 0; i < indent; i++)
+        printf("    ");
+}
+
+// Nova função de criação de nó de declaração (modelo sugerido)
+NoAST *criarNoDeclaracao(Tipo tipo, char *nome, NoAST *init)
+{
+    NoAST *no = alocarNoAST(NODE_DECLARATION);
+    no->tipo_dado = tipo;
+    no->data.decl_info.nome_declaracao = strdup(nome);
+    if (init)
     {
-    case TIPO_INT:
-        return "int";
-    case TIPO_FLOAT:
-        return "float";
-    case TIPO_DOUBLE:
-        return "double";
-    case TIPO_CHAR:
-        return "char";
-    case TIPO_STRING:
-        return "string";
-    case TIPO_VOID:
-        return "void";
-    case TIPO_OBJETO:
-        return "struct";
-    case TIPO_ERRO:
-        return "erro";
+        no->direita = init;
+    }
+    return no;
+}
+// Versão indentada da impressão da AST
+void imprimirASTComIndent(NoAST *no, int indent)
+{
+    if (no == NULL)
+    {
+        return;
+    }
+
+    switch (no->tipo_no)
+    {
+    case NODE_OPERATOR:
+        if (no->data.op_type == OP_NOT_TYPE || no->data.op_type == OP_INC_TYPE || no->data.op_type == OP_DEC_TYPE)
+        {
+            imprimirIndentacao(indent);
+            printf("(%s",
+                   (no->data.op_type == OP_NOT_TYPE) ? "!" : (no->data.op_type == OP_INC_TYPE) ? "++"
+                                                         : (no->data.op_type == OP_DEC_TYPE)   ? "--"
+                                                                                               : "?");
+            imprimirASTComIndent(no->esquerda, indent);
+            printf(")");
+        }
+        else
+        {
+            imprimirIndentacao(indent);
+            printf("(");
+            imprimirASTComIndent(no->esquerda, indent);
+            printf(" %s ",
+                   (no->data.op_type == OP_ADD_TYPE) ? "+" : (no->data.op_type == OP_SUB_TYPE)      ? "-"
+                                                         : (no->data.op_type == OP_MUL_TYPE)        ? "*"
+                                                         : (no->data.op_type == OP_DIV_TYPE)        ? "/"
+                                                         : (no->data.op_type == OP_ASSIGN_TYPE)     ? "="
+                                                         : (no->data.op_type == OP_EQ_TYPE)         ? "=="
+                                                         : (no->data.op_type == OP_NE_TYPE)         ? "!="
+                                                         : (no->data.op_type == OP_LT_TYPE)         ? "<"
+                                                         : (no->data.op_type == OP_LE_TYPE)         ? "<="
+                                                         : (no->data.op_type == OP_GT_TYPE)         ? ">"
+                                                         : (no->data.op_type == OP_GE_TYPE)         ? ">="
+                                                         : (no->data.op_type == OP_AND_TYPE)        ? "&&"
+                                                         : (no->data.op_type == OP_OR_TYPE)         ? "||"
+                                                         : (no->data.op_type == OP_ADD_ASSIGN_TYPE) ? "+="
+                                                         : (no->data.op_type == OP_SUB_ASSIGN_TYPE) ? "-="
+                                                         : (no->data.op_type == OP_MUL_ASSIGN_TYPE) ? "*="
+                                                         : (no->data.op_type == OP_DIV_ASSIGN_TYPE) ? "/="
+                                                         : (no->data.op_type == OP_MOD_ASSIGN_TYPE) ? "%="
+                                                                                                    : "?");
+            imprimirASTComIndent(no->direita, indent);
+            printf(")");
+        }
+        break;
+
+    case NODE_LITERAL:
+        imprimirIndentacao(indent);
+        switch (no->tipo_dado)
+        {
+        case TIPO_INT:
+            printf("%d", no->data.literal.val_int);
+            break;
+        case TIPO_FLOAT:
+            printf("%f", no->data.literal.val_float);
+            break;
+        case TIPO_DOUBLE:
+            printf("%lf", no->data.literal.val_double);
+            break;
+        case TIPO_CHAR:
+            printf("'%c'", no->data.literal.val_char);
+            break;
+        case TIPO_STRING:
+            printf("\"%s\"", no->data.literal.val_string);
+            break;
+        default:
+            printf("[LITERAL DESCONHECIDO]");
+            break;
+        }
+        break;
+
+    case NODE_IDENTIFIER:
+        imprimirIndentacao(indent);
+        printf("%s", no->data.nome_id);
+        break;
+
+    case NODE_DECLARATION:
+        imprimirIndentacao(indent);
+        printf("%s %s",
+               (no->tipo_dado == TIPO_INT) ? "int" : (no->tipo_dado == TIPO_FLOAT) ? "float"
+                                                 : (no->tipo_dado == TIPO_DOUBLE)  ? "double"
+                                                 : (no->tipo_dado == TIPO_CHAR)    ? "char"
+                                                 : (no->tipo_dado == TIPO_STRING)  ? "string"
+                                                                                   : "tipo_desconhecido",
+               no->data.decl_info.nome_declaracao);
+        if (no->data.decl_info.inicializacao_expr)
+        {
+            printf(" = ");
+            imprimirASTComIndent(no->data.decl_info.inicializacao_expr, indent);
+        }
+        printf(";");
+        break;
+
+    case NODE_RETURN:
+        imprimirIndentacao(indent);
+        printf("return ");
+        imprimirASTComIndent(no->esquerda, indent);
+        printf(";");
+        break;
+
+    case NODE_IF:
+        imprimirIndentacao(indent);
+        printf("if (");
+        imprimirASTComIndent(no->esquerda, indent);
+        printf(")\n");
+        imprimirASTComIndent(no->direita, indent + 1);
+        if (no->centro)
+        {
+            printf("\n");
+            imprimirIndentacao(indent);
+            printf("else\n");
+            imprimirASTComIndent(no->centro, indent + 1);
+        }
+        break;
+
+    case NODE_WHILE:
+        imprimirIndentacao(indent);
+        printf("while (");
+        imprimirASTComIndent(no->esquerda, indent);
+        printf(")\n");
+        imprimirASTComIndent(no->direita, indent + 1);
+        break;
+
+    case NODE_FOR:
+        imprimirIndentacao(indent);
+        printf("for (");
+        if (no->esquerda)
+            imprimirASTComIndent(no->esquerda, 0);
+        printf("; ");
+        if (no->direita)
+            imprimirASTComIndent(no->direita, 0);
+        printf("; ");
+        if (no->centro)
+            imprimirASTComIndent(no->centro, 0);
+        printf(")\n");
+        if (no->proximo)
+            imprimirASTComIndent(no->proximo, indent + 1);
+        break;
+
+    case NODE_PROGRAM:
+        imprimirASTComIndent(no->esquerda, indent);
+        if (no->proximo)
+            imprimirASTComIndent(no->proximo, indent);
+        break;
+
+    case NODE_PARAM_LIST:
+    case NODE_ARG_LIST:
+        imprimirASTComIndent(no->esquerda, indent);
+        if (no->proximo)
+            imprimirASTComIndent(no->proximo, indent);
+        break;
+
+    case NODE_FIELD_ASSIGN:
+        imprimirIndentacao(indent);
+        if (no->esquerda)
+        {
+            imprimirASTComIndent(no->esquerda, 0);
+            printf(".");
+        }
+        printf("%s = ", no->data.field_info.campo_nome);
+        imprimirASTComIndent(no->direita, 0);
+        printf(";");
+        break;
+
+    case NODE_FIELD_ACCESS:
+        imprimirIndentacao(indent);
+        if (no->esquerda)
+        {
+            imprimirASTComIndent(no->esquerda, 0);
+            printf(".");
+        }
+        printf("%s", no->data.field_info.campo_nome);
+        break;
+
+    case NODE_COMPOUND_STMT:
+        imprimirIndentacao(indent);
+        printf("{\n");
+        for (NoAST *stmt = no->esquerda; stmt; stmt = stmt->proximo)
+        {
+            imprimirASTComIndent(stmt, indent + 1);
+            printf("\n");
+        }
+        imprimirIndentacao(indent);
+        printf("}\n");
+        break;
+
+    case NODE_BREAK:
+        imprimirIndentacao(indent);
+        printf("break;");
+        break;
+
+    case NODE_CONTINUE:
+        imprimirIndentacao(indent);
+        printf("continue;");
+        break;
+
+    case NODE_FUNCTION_CALL:
+        imprimirIndentacao(indent);
+        printf("%s(", no->data.func_name);
+        imprimirASTComIndent(no->esquerda, 0);
+        printf(")");
+        break;
+
+    case NODE_FUNCTION_DEF:
+        imprimirIndentacao(indent);
+        printf("function %s(", no->data.func_name);
+        NoAST *param = no->esquerda;
+        while (param)
+        {
+            printf("%s", param->data.decl_info.nome_declaracao);
+            if (param->proximo)
+                printf(", ");
+            param = param->proximo;
+        }
+        printf(")\n");
+        imprimirASTComIndent(no->direita, indent + 1);
+        break;
+
+    case NODE_SWITCH:
+        imprimirIndentacao(indent);
+        printf("switch (");
+        imprimirASTComIndent(no->esquerda, 0);
+        printf(")\n");
+        imprimirASTComIndent(no->direita, indent + 1);
+        break;
+
+    case NODE_SWITCH_BODY:
+        imprimirASTComIndent(no->esquerda, indent);
+        if (no->direita)
+        {
+            imprimirASTComIndent(no->direita, indent);
+        }
+        break;
+
+    case NODE_CASE:
+        imprimirIndentacao(indent);
+        printf("case ");
+        imprimirASTComIndent(no->esquerda, 0);
+        printf(":\n");
+        imprimirASTComIndent(no->direita, indent + 1);
+        break;
+
+    case NODE_DEFAULT:
+        imprimirIndentacao(indent);
+        printf("default:\n");
+        imprimirASTComIndent(no->esquerda, indent + 1);
+        break;
+
+    case NODE_ERROR:
+        imprimirIndentacao(indent);
+        printf("[NÓ DE ERRO]");
+        break;
+
     default:
-        return "desconhecido";
+        imprimirIndentacao(indent);
+        printf("[TIPO DE NÓ DESCONHECIDO]");
+        break;
     }
 }
 
@@ -86,74 +351,54 @@ NoAST *criarNoReturn(NoAST *expr_retorno)
     return no;
 }
 
-// Implementação da função de criação de nó if-else
+// Exemplo para if
 NoAST *criarNoIf(NoAST *condicao, NoAST *bloco_then, NoAST *bloco_else)
 {
     NoAST *no = alocarNoAST(NODE_IF);
-    no->esquerda = condicao;   // A condição é o filho esquerdo
-    no->direita = bloco_then;  // O bloco 'then' é o filho direito
-    no->centro = bloco_else;   // O bloco 'else' (pode ser NULL)
-    no->tipo_dado = TIPO_VOID; // 'if' geralmente não tem um tipo de dado de retorno
+    no->esquerda = condicao;
+    no->direita = bloco_then;
+    no->centro = bloco_else;
+    no->tipo_dado = TIPO_VOID;
+    if (bloco_then && bloco_then->tipo_no == NODE_COMPOUND_STMT)
+        bloco_then->pai_controlador = no;
+    if (bloco_else && bloco_else->tipo_no == NODE_COMPOUND_STMT)
+        bloco_else->pai_controlador = no;
     return no;
 }
 
-// Implementação da função de criação de nó while
+// Exemplo para while
 NoAST *criarNoWhile(NoAST *condicao, NoAST *bloco)
 {
     NoAST *no = alocarNoAST(NODE_WHILE);
-    no->esquerda = condicao; // A condição é o filho esquerdo
-    no->direita = bloco;     // O bloco do 'while' é o filho direito
+    no->esquerda = condicao;
+    no->direita = bloco;
     no->tipo_dado = TIPO_VOID;
+    if (bloco && bloco->tipo_no == NODE_COMPOUND_STMT)
+        bloco->pai_controlador = no;
     return no;
 }
 
-// Implementação da função de criação de nó for
-NoAST *criarNoFor(NoAST *init, NoAST *cond, NoAST *iter, NoAST *bloco)
-{
-    NoAST *no = alocarNoAST(NODE_FOR);
-    no->esquerda = init; // Inicialização (pode ser NULL)
-    no->direita = cond;  // Condição (pode ser NULL)
-    no->centro = iter;   // Iteração (pode ser NULL)
-    no->proximo = bloco; // O bloco do 'for' (usando 'proximo' para o 4º filho)
-    no->tipo_dado = TIPO_VOID;
-    return no;
-}
-
-NoAST *criarNoSwitchBody(NoAST *case_list_head, NoAST *default_node)
-{
-    NoAST *no = alocarNoAST(NODE_SWITCH_BODY);
-    no->esquerda = case_list_head; // A cabeça da lista de nós NODE_CASE
-    no->direita = default_node;    // O nó NODE_DEFAULT (pode ser NULL)
-    no->tipo_dado = TIPO_VOID;
-    return no;
-}
-
-// Cria um nó para um 'case' individual
-NoAST *criarNoCase(NoAST *case_expr, NoAST *statement_list)
-{
-    NoAST *no = alocarNoAST(NODE_CASE);
-    no->esquerda = case_expr;     // A expressão do case (ex: 10, 'A')
-    no->direita = statement_list; // A lista de comandos dentro do case
-    no->tipo_dado = TIPO_VOID;
-    return no;
-}
-
-// Cria um nó para o 'default'
-NoAST *criarNoDefault(NoAST *statement_list)
-{
-    NoAST *no = alocarNoAST(NODE_DEFAULT);
-    no->esquerda = statement_list; // A lista de comandos dentro do default
-    no->tipo_dado = TIPO_VOID;
-    return no;
-}
-
-// Função para criar um nó de switch
+// Exemplo para switch
 NoAST *criarNoSwitch(NoAST *expr_controle, NoAST *corpo_switch)
 {
     NoAST *no = alocarNoAST(NODE_SWITCH);
-    no->esquerda = expr_controle; // A expressão de controle (do parêntese)
-    no->direita = corpo_switch;   // O nó que representa o corpo do switch (o que 'switch_body' retorna)
+    no->esquerda = expr_controle;
+    no->direita = corpo_switch;
     no->tipo_dado = TIPO_VOID;
+    if (corpo_switch && corpo_switch->tipo_no == NODE_COMPOUND_STMT)
+        corpo_switch->pai_controlador = no;
+    return no;
+}
+
+NoAST *criarNoFor(NoAST *init, NoAST *cond, NoAST *inc, NoAST *corpo)
+{
+    NoAST *no = alocarNoAST(NODE_FOR);
+    no->esquerda = init;
+    no->direita = cond;
+    no->centro = inc;
+    no->proximo = corpo;
+    if (corpo && corpo->tipo_no == NODE_COMPOUND_STMT)
+        corpo->pai_controlador = no;
     return no;
 }
 
@@ -363,6 +608,173 @@ NoAST *criarNoErro()
     return no;
 }
 
+// Impressão da AST em formato C-like para uso em arquivos (por exemplo, geração de código/intermediário)
+void imprimirNoAST(NoAST *no, FILE *out)
+{
+    if (no == NULL)
+        return;
+    switch (no->tipo_no)
+    {
+    case NODE_OPERATOR:
+        if (no->data.op_type == OP_NOT_TYPE || no->data.op_type == OP_INC_TYPE || no->data.op_type == OP_DEC_TYPE)
+        {
+            fprintf(out, "(%s", (no->data.op_type == OP_NOT_TYPE) ? "!" : (no->data.op_type == OP_INC_TYPE) ? "++"
+                                                                      : (no->data.op_type == OP_DEC_TYPE)   ? "--"
+                                                                                                            : "?");
+            imprimirNoAST(no->esquerda, out);
+            fprintf(out, ")");
+        }
+        else
+        {
+            fprintf(out, "(");
+            imprimirNoAST(no->esquerda, out);
+            fprintf(out, " %s ",
+                    (no->data.op_type == OP_ADD_TYPE) ? "+" : (no->data.op_type == OP_SUB_TYPE)      ? "-"
+                                                          : (no->data.op_type == OP_MUL_TYPE)        ? "*"
+                                                          : (no->data.op_type == OP_DIV_TYPE)        ? "/"
+                                                          : (no->data.op_type == OP_ASSIGN_TYPE)     ? "="
+                                                          : (no->data.op_type == OP_EQ_TYPE)         ? "=="
+                                                          : (no->data.op_type == OP_NE_TYPE)         ? "!="
+                                                          : (no->data.op_type == OP_LT_TYPE)         ? "<"
+                                                          : (no->data.op_type == OP_LE_TYPE)         ? "<="
+                                                          : (no->data.op_type == OP_GT_TYPE)         ? ">"
+                                                          : (no->data.op_type == OP_GE_TYPE)         ? ">="
+                                                          : (no->data.op_type == OP_AND_TYPE)        ? "&&"
+                                                          : (no->data.op_type == OP_OR_TYPE)         ? "||"
+                                                          : (no->data.op_type == OP_ADD_ASSIGN_TYPE) ? "+="
+                                                          : (no->data.op_type == OP_SUB_ASSIGN_TYPE) ? "-="
+                                                          : (no->data.op_type == OP_MUL_ASSIGN_TYPE) ? "*="
+                                                          : (no->data.op_type == OP_DIV_ASSIGN_TYPE) ? "/="
+                                                          : (no->data.op_type == OP_MOD_ASSIGN_TYPE) ? "%="
+                                                                                                     : "?");
+            imprimirNoAST(no->direita, out);
+            fprintf(out, ")");
+        }
+        break;
+    case NODE_LITERAL:
+        switch (no->tipo_dado)
+        {
+        case TIPO_INT:
+            fprintf(out, "%d", no->data.literal.val_int);
+            break;
+        case TIPO_FLOAT:
+            fprintf(out, "%f", no->data.literal.val_float);
+            break;
+        case TIPO_DOUBLE:
+            fprintf(out, "%lf", no->data.literal.val_double);
+            break;
+        case TIPO_CHAR:
+            fprintf(out, "'%c'", no->data.literal.val_char);
+            break;
+        case TIPO_STRING:
+            fprintf(out, "\"%s\"", no->data.literal.val_string);
+            break;
+        default:
+            fprintf(out, "[LITERAL DESCONHECIDO]");
+            break;
+        }
+        break;
+    case NODE_IDENTIFIER:
+        fprintf(out, "%s", no->data.nome_id);
+        break;
+    case NODE_DECLARATION:
+        fprintf(out, "%s %s",
+                (no->tipo_dado == TIPO_INT) ? "int" : (no->tipo_dado == TIPO_FLOAT) ? "float"
+                                                  : (no->tipo_dado == TIPO_DOUBLE)  ? "double"
+                                                  : (no->tipo_dado == TIPO_CHAR)    ? "char"
+                                                  : (no->tipo_dado == TIPO_STRING)  ? "string"
+                                                                                    : "tipo_desconhecido",
+                no->data.decl_info.nome_declaracao);
+        if (no->data.decl_info.inicializacao_expr)
+        {
+            fprintf(out, " = ");
+            imprimirNoAST(no->data.decl_info.inicializacao_expr, out);
+        }
+        fprintf(out, ";");
+        break;
+    case NODE_RETURN:
+        fprintf(out, "return ");
+        imprimirNoAST(no->esquerda, out);
+        fprintf(out, ";");
+        break;
+    case NODE_IF:
+        fprintf(out, "if (");
+        imprimirNoAST(no->esquerda, out);
+        fprintf(out, ") ");
+        imprimirNoAST(no->direita, out);
+        if (no->centro)
+        {
+            fprintf(out, " else ");
+            imprimirNoAST(no->centro, out);
+        }
+        break;
+    case NODE_WHILE:
+        fprintf(out, "while (");
+        imprimirNoAST(no->esquerda, out);
+        fprintf(out, ") ");
+        imprimirNoAST(no->direita, out);
+        break;
+
+    case NODE_FOR:
+        fprintf(out, "for (");
+        if (no->esquerda)
+            imprimirNoAST(no->esquerda, out);
+        fprintf(out, "; ");
+        if (no->direita)
+            imprimirNoAST(no->direita, out);
+        fprintf(out, "; ");
+        if (no->centro)
+            imprimirNoAST(no->centro, out);
+        fprintf(out, ") ");
+        if (no->proximo)
+            imprimirNoAST(no->proximo, out);
+        break;
+    case NODE_COMPOUND_STMT:
+        fprintf(out, "{\n");
+        imprimirNoAST(no->esquerda, out);
+        fprintf(out, "}\n");
+        break;
+    case NODE_BREAK:
+        fprintf(out, "break;");
+        break;
+    case NODE_CONTINUE:
+        fprintf(out, "continue;");
+        break;
+    case NODE_FUNCTION_CALL:
+        fprintf(out, "%s(", no->data.func_name);
+        imprimirNoAST(no->esquerda, out);
+        fprintf(out, ")");
+        break;
+    case NODE_SWITCH:
+        fprintf(out, "switch (");
+        imprimirNoAST(no->esquerda, out);
+        fprintf(out, ") ");
+        imprimirNoAST(no->direita, out);
+        break;
+    case NODE_SWITCH_BODY:
+        imprimirNoAST(no->esquerda, out);
+        if (no->direita)
+            imprimirNoAST(no->direita, out);
+        break;
+    case NODE_CASE:
+        fprintf(out, "case ");
+        imprimirNoAST(no->esquerda, out);
+        fprintf(out, ": ");
+        imprimirNoAST(no->direita, out);
+        break;
+    case NODE_DEFAULT:
+        fprintf(out, "default: ");
+        imprimirNoAST(no->esquerda, out);
+        break;
+    case NODE_ERROR:
+        fprintf(out, "[NÓ DE ERRO]");
+        break;
+    default:
+        fprintf(out, "[TIPO DE NÓ DESCONHECIDO]");
+        break;
+    }
+}
+
 NoAST *criarNoAtribuicaoCampo(NoAST *struct_expr, char *campo, NoAST *valor)
 {
     NoAST *no = alocarNoAST(NODE_FIELD_ASSIGN);
@@ -435,6 +847,7 @@ void imprimirAST(NoAST *no)
                                                          : (no->data.op_type == OP_SUB_ASSIGN_TYPE) ? "-="
                                                          : (no->data.op_type == OP_MUL_ASSIGN_TYPE) ? "*="
                                                          : (no->data.op_type == OP_DIV_ASSIGN_TYPE) ? "/="
+                                                         : (no->data.op_type == OP_MOD_ASSIGN_TYPE) ? "%="
                                                                                                     : "?");
             imprimirAST(no->direita);
             printf(")");
@@ -627,4 +1040,175 @@ int tiposCompativeis(Tipo t1, Tipo t2)
         (t1 == TIPO_FLOAT && t2 == TIPO_INT))
         return 1;
     return 0;
+}
+
+NoAST *criarNoFuncao(char *nome, Tipo tipo_retorno, NoAST *params, NoAST *corpo)
+{
+    NoAST *no = alocarNoAST(NODE_FUNCTION_DEF);
+    no->data.func_name = strdup(nome);
+    no->tipo_dado = tipo_retorno;
+    no->esquerda = params; // já é uma lista encadeada
+    no->direita = corpo;
+    no->proximo = NULL;
+    return no;
+}
+const char *nomeTipo(Tipo tipo)
+{
+    switch (tipo)
+    {
+    case TIPO_INT:
+        return "int";
+    case TIPO_FLOAT:
+        return "float";
+    case TIPO_DOUBLE:
+        return "double";
+    case TIPO_CHAR:
+        return "char";
+    case TIPO_STRING:
+        return "string";
+    case TIPO_VOID:
+        return "void";
+    case TIPO_OBJETO:
+        return "struct";
+    case TIPO_ERRO:
+        return "erro";
+    default:
+        return "desconhecido";
+    }
+}
+
+NoAST *criarNoSwitchBody(NoAST *case_list_head, NoAST *default_node)
+{
+    NoAST *no = alocarNoAST(NODE_SWITCH_BODY);
+    no->esquerda = case_list_head;
+    no->direita = default_node;
+    return no;
+}
+
+NoAST *criarNoCase(NoAST *case_expr, NoAST *statement_list)
+{
+    NoAST *no = alocarNoAST(NODE_CASE);
+    no->esquerda = case_expr;
+    no->direita = statement_list;
+    return no;
+}
+
+NoAST *criarNoDefault(NoAST *statement_list)
+{
+    NoAST *no = alocarNoAST(NODE_DEFAULT);
+    no->esquerda = statement_list;
+    return no;
+}
+
+NoAST *criarNoDeclaracaoVarArrayComInicializacao(char *nome, Tipo tipo, NoAST *tamanho, NoAST *valores)
+{
+    NoAST *no = alocarNoAST(NODE_DECLARATION);
+    no->tipo_dado = tipo;
+    no->data.decl_info.nome_declaracao = strdup(nome);
+    if (no->data.decl_info.nome_declaracao == NULL)
+    {
+        fprintf(stderr, "Erro de alocacao de memoria para nome do array '%s' na declaracao com inicializacao na linha %d.\n", nome, yylineno);
+        liberarAST(no);
+        exit(EXIT_FAILURE);
+    }
+    no->data.decl_info.inicializacao_expr = valores;
+    no->data.decl_info.tamanho_array = (tamanho != NULL) ? tamanho : NULL;
+    return no;
+}
+
+NoAST *criarNoArrayLiteral(NoAST *valores)
+{
+    NoAST *no = alocarNoAST(NODE_ARRAY_LITERAL);
+    no->tipo_dado = TIPO_INT; // tipo default do array, pode ajustar depois se quiser
+    no->esquerda = valores;   // lista de valores
+    no->direita = NULL;
+    no->proximo = NULL;
+    no->pai_controlador = NULL;
+    return no;
+}
+
+NoAST *removerNoDaLista(NoAST *head, NoAST *alvo)
+{
+    if (!head)
+        return NULL;
+    if (head == alvo)
+        return head->proximo;
+    NoAST *atual = head;
+    while (atual->proximo)
+    {
+        if (atual->proximo == alvo)
+        {
+            atual->proximo = alvo->proximo;
+            break;
+        }
+        atual = atual->proximo;
+    }
+    return head;
+}
+
+NoAST *criarNoAcessoArray(NoAST *array, NoAST *indice)
+{
+    NoAST *no = alocarNoAST(NODE_ARRAY_ACCESS);
+    no->esquerda = array;     // o array
+    no->direita = indice;     // o índice de acesso
+    no->tipo_dado = TIPO_INT; // tipo padrão, ou pode tentar inferir depois
+    return no;
+}
+
+// Função utilitária para copiar um nó isolado da AST (sem filhos)
+NoAST *copiarNoAST(const NoAST *orig)
+{
+    if (!orig)
+        return NULL;
+    NoAST *novo = (NoAST *)malloc(sizeof(NoAST));
+    memset(novo, 0, sizeof(NoAST));
+    novo->tipo_no = orig->tipo_no;
+    novo->tipo_dado = orig->tipo_dado;
+    switch (orig->tipo_no)
+    {
+    case NODE_IDENTIFIER:
+        strncpy(novo->data.nome_id, orig->data.nome_id, sizeof(novo->data.nome_id));
+        novo->data.nome_id[sizeof(novo->data.nome_id) - 1] = '\0';
+        break;
+    case NODE_LITERAL:
+        if (orig->tipo_dado == TIPO_STRING && orig->data.literal.val_string)
+        {
+            novo->data.literal.val_string = strdup(orig->data.literal.val_string);
+        }
+        else if (orig->tipo_dado == TIPO_INT)
+        {
+            novo->data.literal.val_int = orig->data.literal.val_int;
+        }
+        else if (orig->tipo_dado == TIPO_FLOAT)
+        {
+            novo->data.literal.val_float = orig->data.literal.val_float;
+        }
+        else if (orig->tipo_dado == TIPO_DOUBLE)
+        {
+            novo->data.literal.val_double = orig->data.literal.val_double;
+        }
+        else if (orig->tipo_dado == TIPO_CHAR)
+        {
+            novo->data.literal.val_char = orig->data.literal.val_char;
+        }
+        break;
+    case NODE_OPERATOR:
+        novo->data.op_type = orig->data.op_type;
+        break;
+    case NODE_FUNCTION_CALL:
+        if (orig->data.func_name)
+            novo->data.func_name = strdup(orig->data.func_name);
+        break;
+    default:
+        // Para outros tipos, copie campos relevantes se necessário
+        break;
+    }
+    // Todos os ponteiros para filhos ficam NULL (nó isolado)
+    novo->esquerda = NULL;
+    novo->direita = NULL;
+    novo->centro = NULL;
+    novo->proximo = NULL;
+    novo->parametros = NULL;
+    novo->pai_controlador = NULL;
+    return novo;
 }

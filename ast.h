@@ -16,9 +16,10 @@ typedef enum
     TIPO_ERRO    // Para representar nós que resultam de erros semânticos/sintáticos
 } Tipo;
 
-const char* nomeTipo(Tipo tipo);
+const char *nomeTipo(Tipo tipo);
 
 // Enumeração para o tipo de nó na AST
+// ATENÇÃO: mantenha esta enumeração sincronizada com todos os arquivos!
 typedef enum
 {
     NODE_OPERATOR,
@@ -44,7 +45,9 @@ typedef enum
     NODE_PARAM_LIST,    // Lista de parâmetros de função
     NODE_ARG_LIST,      // Lista de argumentos em chamadas de função
     NODE_FIELD_ASSIGN,  // Para atribuição a campo de struct (ex: p.x = 1)
-    NODE_FIELD_ACCESS   // Para acesso a campo de struct (ex: p.x)
+    NODE_FIELD_ACCESS,  // Para acesso a campo de struct (ex: p.x)
+    NODE_ARRAY_ACCESS,  // Para acesso a elementos de array (ex: arr[0])
+    NODE_ARRAY_LITERAL
 } NodeType;
 
 // Enumeração para os operadores
@@ -101,6 +104,7 @@ typedef struct NoAST
         {
             char *nome_declaracao;
             struct NoAST *inicializacao_expr;
+            struct NoAST *tamanho_array; // adiciona campo para tamanho de array
         } decl_info;
 
         char *func_name;
@@ -117,8 +121,14 @@ typedef struct NoAST
     struct NoAST *direita;
     struct NoAST *centro;
     struct NoAST *proximo;
+    struct NoAST *parametros;
+    struct NoAST *pai_controlador; // aponta para o comando de controle (for/while/if/switch) que é dono deste bloco
+    struct NoAST *tamanho_array;   // para armazenar tamanho de array (opcional)
 
 } NoAST;
+
+// Função utilitária para copiar um nó isolado da AST (sem filhos)
+NoAST *copiarNoAST(const NoAST *orig);
 
 // Funções de criação de nós
 NoAST *criarNoOp(OperatorType op, NoAST *esq, NoAST *dir);
@@ -126,8 +136,11 @@ NoAST *criarNoUnario(OperatorType op, NoAST *operando);
 NoAST *criarNoNum(Tipo tipo, void *valor);
 NoAST *criarNoId(char *nome, Tipo tipo);
 NoAST *criarNoChar(char val);
+NoAST *criarNoListaParametros(NoAST *param, NoAST *proximo_param);
+NoAST *criarNoParametro(Tipo tipo, char *nome);
 NoAST *criarNoString(char *val);
 NoAST *criarNoErro();
+NoAST *removerNoDaLista(NoAST *head, NoAST *alvo);
 
 // Funções para comandos (statements)
 NoAST *criarNoDeclaracaoVar(char *nome, Tipo tipo_declarado, NoAST *inicializacao_expr);
@@ -146,10 +159,15 @@ NoAST *criarNoContinue();
 NoAST *criarNoChamadaFuncao(char *nome_func, NoAST *args_list, Tipo tipo_retorno);
 NoAST *criarNoAtribuicaoCampo(NoAST *struct_expr, char *campo, NoAST *valor);
 NoAST *criarNoAcessoCampo(NoAST *struct_expr, char *campo);
+NoAST *criarNoFuncao(char *nome, Tipo tipo_retorno, NoAST *params, NoAST *corpo);
+NoAST *criarNoAcessoArray(NoAST *array_expr, NoAST *index_expr);
+NoAST *criarNoDeclaracaoVarArrayComInicializacao(char *nome, Tipo tipo, NoAST *tamanho, NoAST *valores);
+NoAST *criarNoArrayLiteral(NoAST *valores);
 
 // Funções de manipulação da AST
 void imprimirAST(NoAST *no);
 void liberarAST(NoAST *no);
+NoAST *removerNoDaLista(NoAST *head, NoAST *alvo);
 int tiposCompativeis(Tipo t1, Tipo t2);
 
 #endif // AST_H

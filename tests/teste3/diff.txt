@@ -1,0 +1,101 @@
+0a1,5
+> type Point = {
+>   x: number;
+>   y: number;
+> };
+> 
+1a7
+>   // Chamada de função básica
+2a9,10
+> 
+>   // Declarações e operadores
+9d16
+< i *= 3;
+11c18,20
+< if (i > 5 && f < 10) {
+---
+> 
+>   // Estrutura condicional complexa
+>   if (i > 5 && f < 10.0) {
+13,14c22
+< }
+< else {
+---
+>   } else {
+16a25,26
+> 
+>   // Loop com switch aninhado
+21,46c31
+< // [Tipo de nó não implementado: 14]
+<   case 1:
+<   case 2:
+< console.log("Resíduo baixo");
+< // [Tipo de nó não implementado: 14]
+<   default:
+< console.log("Outro resíduo");
+< }
+< let p1: Point = { x: 0, y: 0 };
+< }
+< switch (j % 5) {
+<   case 0:
+< console.log("Múltiplo de 5");
+< // [Tipo de nó não implementado: 14]
+<   case 1:
+<   case 2:
+< console.log("Resíduo baixo");
+< // [Tipo de nó não implementado: 14]
+<   default:
+< console.log("Outro resíduo");
+< }
+< for (; j < 15; j = j + 1) {
+< switch (j % 5) {
+<   case 0:
+< console.log("Múltiplo de 5");
+< // [Tipo de nó não implementado: 14]
+---
+>         break;
+50c35
+< // [Tipo de nó não implementado: 14]
+---
+>         break;
+55,76c40,42
+< switch (j % 5) {
+<   case 0:
+< console.log("Múltiplo de 5");
+< // [Tipo de nó não implementado: 14]
+<   case 1:
+<   case 2:
+< console.log("Resíduo baixo");
+< // [Tipo de nó não implementado: 14]
+<   default:
+< console.log("Outro resíduo");
+< }
+< switch (j % 5) {
+<   case 0:
+< console.log("Múltiplo de 5");
+< // [Tipo de nó não implementado: 14]
+<   case 1:
+<   case 2:
+< console.log("Resíduo baixo");
+< // [Tipo de nó não implementado: 14]
+<   default:
+< console.log("Outro resíduo");
+< }
+---
+> 
+>   // Uso de struct
+>   let p1: Point = { x: 0, y: 0 };
+79,83d44
+< let p2: Point = { x: p1.y, y: 0 };
+< p1.y = i * 2;
+< console.log(`Ponto final: (${}, ${})\n`);
+< return 0;
+< }
+84a46,47
+>   // Operações com struct
+>   let p2: Point = { x: p1.y, y: p1.x };
+85a49,52
+>   console.log(`Ponto final: (${p2.x}, ${p2.y})`);
+> 
+>   return 0;
+> }
